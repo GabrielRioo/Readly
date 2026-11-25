@@ -42,6 +42,31 @@ select {
   margin: 1.2em 0 0.45em;
 }
 
+.reader-lookup-mark {
+  background: var(--reader-selection);
+  color: inherit;
+  border-radius: 0.15em;
+  padding: 0.05em 0;
+}
+
+.reader-bookmark {
+  position: relative;
+  scroll-margin-top: 24px;
+  box-shadow: inset 3px 0 0 var(--reader-bookmark, #1f4d3a);
+  padding-left: 0.55em;
+}
+
+.reader-bookmark::before {
+  content: '';
+  position: absolute;
+  left: -0.15em;
+  top: 0.35em;
+  width: 0.55em;
+  height: 0.75em;
+  border-radius: 0.08em 0.08em 0 0.2em;
+  background: var(--reader-bookmark, #1f4d3a);
+}
+
 .fade-up {
   animation: fade-up 280ms ease;
 }

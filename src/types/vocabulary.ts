@@ -10,5 +10,6 @@ export interface VocabularyRecord {
 export interface TranslationCacheRecord {
   key: string
   translation: string
+  meanings?: string[]
   createdAt: number
 }

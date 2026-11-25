@@ -1,4 +1,4 @@
-import type { BookFormat, BookRecord, BookSummary, ReadingLocation } from '../types/book.ts'
+import type { BookFormat, BookRecord, BookSummary, ReadingBookmark, ReadingLocation } from '../types/book.ts'
 import { titleFromFileName } from '../utils/text.ts'
 import { validateBookFile } from '../utils/fileValidation.ts'
 import { db } from './db.ts'
@@ -42,6 +42,13 @@ export async function saveReadingLocation(
   progress: number,
 ): Promise<void> {
   await db.books.update(id, { location, progress })
+}
+
+export async function saveReadingBookmark(
+  id: string,
+  bookmark: ReadingBookmark | null,
+): Promise<void> {
+  await db.books.update(id, { bookmark })
 }
 
 async function readTitle(file: File, format: BookFormat): Promise<string> {

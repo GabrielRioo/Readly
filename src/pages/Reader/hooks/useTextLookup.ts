@@ -4,12 +4,13 @@ import { errorMessage } from '../../../utils/text.ts'
 
 export interface LookupRequest {
   text: string
-  origin: 'selection' | 'hover'
+  origin: 'selection'
 }
 
 export function useTextLookup() {
   const [request, setRequest] = useState<LookupRequest | null>(null)
   const [translation, setTranslation] = useState<string | null>(null)
+  const [meanings, setMeanings] = useState<string[]>([])
   const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
@@ -20,7 +21,8 @@ export function useTextLookup() {
     translateToPortuguese(request.text)
       .then((value) => {
         if (!active) return
-        setTranslation(value)
+        setTranslation(value.translation)
+        setMeanings(value.meanings)
         setStatus('ready')
       })
       .catch((caught: unknown) => {
@@ -34,13 +36,14 @@ export function useTextLookup() {
     }
   }, [request])
 
-  function lookup(text: string, origin: LookupRequest['origin']) {
+  function lookup(text: string) {
     const normalized = text.replace(/\s+/g, ' ').trim()
     if (!normalized) return
-    if (request?.text === normalized && request.origin === origin && status !== 'error') return
-    setRequest({ text: normalized, origin })
+    if (request?.text === normalized && status !== 'error') return
+    setRequest({ text: normalized, origin: 'selection' })
     setStatus('loading')
     setTranslation(null)
+    setMeanings([])
     setError(null)
     setSaved(false)
   }
@@ -48,11 +51,22 @@ export function useTextLookup() {
   function clear() {
     setRequest(null)
     setTranslation(null)
+    setMeanings([])
     setError(null)
     setStatus('idle')
     setSaved(false)
     window.getSelection()?.removeAllRanges()
   }
 
-  return { request, translation, status, error, saved, markSaved: () => setSaved(true), lookup, clear }
+  return {
+    request,
+    translation,
+    meanings,
+    status,
+    error,
+    saved,
+    markSaved: () => setSaved(true),
+    lookup,
+    clear,
+  }
 }

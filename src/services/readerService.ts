@@ -110,7 +110,14 @@ function destroyEpub(book: Book): void {
 }
 
 function openedFrom(
-  record: { id: string; title: string; format: OpenedReader['format']; location: OpenedReader['location']; progress: number },
+  record: {
+    id: string
+    title: string
+    format: OpenedReader['format']
+    location: OpenedReader['location']
+    bookmark?: OpenedReader['bookmark'] | null
+    progress: number
+  },
   sectionCount: number,
   sectionTitles: string[],
   section: ReaderSection,
@@ -127,6 +134,7 @@ function openedFrom(
       chapterIndex: section.index,
       page: section.index + 1,
     },
+    bookmark: record.bookmark ?? null,
     progress: record.progress || readingProgress(count, section.index, record.location.scrollRatio),
     section,
   }

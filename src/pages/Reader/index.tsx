@@ -1,9 +1,16 @@
 import { Alert, Box, Button, CircularProgress, Typography } from '@mui/material'
+import { useCallback, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { usePreferences } from '../../hooks/usePreferences.ts'
 import { useSpeech } from '../../hooks/useSpeech.ts'
 import { saveVocabularyEntry } from '../../services/vocabularyStorage.ts'
 import { nextReaderTheme, readerThemes } from '../../theme/readerThemes.ts'
+import {
+  clearLookupHighlight,
+  findBookmarkBlockIndex,
+  highlightSelectionIn,
+  scrollToBookmark,
+} from '../../utils/readerDom.ts'
 import { formatPercent } from '../../utils/text.ts'
 import { AudioBar } from './components/AudioBar.tsx'
 import { ReaderBody } from './components/ReaderBody.tsx'
@@ -23,24 +30,32 @@ export function ReaderPage() {
   const lookup = useTextLookup()
   const speech = useSpeech(preferences.speechRate, preferences.voiceURI)
   const theme = readerThemes[preferences.theme]
+  const bodyRef = useRef<HTMLDivElement | null>(null)
+  const clearLookupRef = useRef(lookup.clear)
+  clearLookupRef.current = lookup.clear
   const sectionKey = reader.section ? `${reader.book?.id ?? ''}:${reader.section.index}` : ''
   const scrollerRef = useReadingScroll(sectionKey, () => reader.ratioRef.current, (ratio) => {
     void reader.persistRatio(ratio)
   })
 
+  const closeLookup = useCallback(() => {
+    clearLookupHighlight(bodyRef.current)
+    clearLookupRef.current()
+  }, [])
+
   useTextGestures(scrollerRef, reader.status === 'ready', {
-    onHover: (word) => {
-      const selected = window.getSelection()?.toString().trim()
-      if (selected) return
-      lookup.lookup(word, 'hover')
+    onSelection: (text) => {
+      const body = bodyRef.current
+      if (body) highlightSelectionIn(body)
+      lookup.lookup(text)
     },
-    onSelection: (text) => lookup.lookup(text, 'selection'),
   })
 
   const themeStyle = {
     background: theme.background,
     color: theme.text,
     '--reader-selection': theme.selection,
+    '--reader-bookmark': theme.accent,
   }
 
   if (reader.status === 'loading') {
@@ -68,6 +83,8 @@ export function ReaderPage() {
   const book = reader.book
   const section = reader.section
   const sheetOpen = lookup.request !== null
+  const bookmarkOnSection =
+    book.bookmark && book.bookmark.sectionIndex === section.index ? book.bookmark.blockIndex : null
 
   function toggleChapterAudio() {
     if (speech.status === 'playing') speech.pause()
@@ -77,8 +94,27 @@ export function ReaderPage() {
 
   function moveTo(index: number) {
     speech.stop()
-    lookup.clear()
+    closeLookup()
     void reader.goTo(index)
+  }
+
+  function toggleBookmark() {
+    const scroller = scrollerRef.current
+    const body = bodyRef.current
+    if (!scroller || !body) return
+
+    if (bookmarkOnSection !== null) {
+      void reader.setBookmark(null)
+      return
+    }
+
+    const blockIndex = findBookmarkBlockIndex(scroller, body)
+    if (blockIndex < 0) return
+    scrollToBookmark(scroller, body, blockIndex)
+    const max = scroller.scrollHeight - scroller.clientHeight
+    const ratio = max <= 0 ? 1 : scroller.scrollTop / max
+    void reader.setBookmark(blockIndex)
+    void reader.persistRatio(ratio)
   }
 
   return (
@@ -90,12 +126,14 @@ export function ReaderPage() {
         title={book.title}
         theme={theme}
         playing={speech.status === 'playing'}
+        bookmarkActive={bookmarkOnSection !== null}
         onBack={() => {
           speech.stop()
           navigate('/')
         }}
         onToggleSpeech={toggleChapterAudio}
         onTheme={() => update({ theme: nextReaderTheme(preferences.theme) })}
+        onToggleBookmark={toggleBookmark}
       />
       <Box ref={scrollerRef} sx={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
         {reader.sectionStatus === 'loading' && (
@@ -106,7 +144,13 @@ export function ReaderPage() {
             {reader.error}
           </Typography>
         )}
-        <ReaderBody html={section.html} fontSize={preferences.fontSize} lineHeight={preferences.lineHeight} />
+        <ReaderBody
+          ref={bodyRef}
+          html={section.html}
+          fontSize={preferences.fontSize}
+          lineHeight={preferences.lineHeight}
+          bookmarkBlockIndex={bookmarkOnSection}
+        />
       </Box>
       {speech.error && (
         <Alert severity="warning" onClose={speech.clearError} sx={{ mx: 1.5, mb: 1 }}>
@@ -131,10 +175,11 @@ export function ReaderPage() {
           theme={theme}
           request={lookup.request}
           translation={lookup.translation}
+          meanings={lookup.meanings}
           status={lookup.status}
           error={lookup.error}
           saved={lookup.saved}
-          onClose={lookup.clear}
+          onClose={closeLookup}
           onSpeak={() => void speech.speak(lookup.request?.text ?? '')}
           onSave={() => {
             if (!lookup.request || !lookup.translation) return
@@ -143,7 +188,9 @@ export function ReaderPage() {
               translation: lookup.translation,
               bookId: book.id,
               bookTitle: book.title,
-            }).then(() => lookup.markSaved()).catch(() => undefined)
+            })
+              .then(() => lookup.markSaved())
+              .catch(() => undefined)
           }}
         />
       )}

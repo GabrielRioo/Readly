@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { saveReadingLocation } from '../../../services/bookStorage.ts'
+import { saveReadingBookmark, saveReadingLocation } from '../../../services/bookStorage.ts'
 import { closeReaderBook, isReaderCancelled, loadReaderSection, openReaderBook } from '../../../services/readerService.ts'
-import type { OpenedReader, ReaderSection } from '../../../types/book.ts'
+import type { OpenedReader, ReadingBookmark, ReaderSection } from '../../../types/book.ts'
 import { errorMessage, readingProgress } from '../../../utils/text.ts'
 
 export function useReaderDocument(bookId: string | undefined) {
@@ -79,5 +79,15 @@ export function useReaderDocument(bookId: string | undefined) {
     )
   }
 
-  return { status, sectionStatus, error, book, section, ratioRef, goTo, persistRatio }
+  async function setBookmark(blockIndex: number | null) {
+    if (!book || !section) return
+    const bookmark: ReadingBookmark | null =
+      blockIndex === null
+        ? null
+        : { sectionIndex: section.index, blockIndex, updatedAt: Date.now() }
+    setBook((current) => (current ? { ...current, bookmark } : current))
+    await saveReadingBookmark(book.id, bookmark)
+  }
+
+  return { status, sectionStatus, error, book, section, ratioRef, goTo, persistRatio, setBookmark }
 }

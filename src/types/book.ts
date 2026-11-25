@@ -6,6 +6,12 @@ export interface ReadingLocation {
   scrollRatio: number
 }
 
+export interface ReadingBookmark {
+  sectionIndex: number
+  blockIndex: number
+  updatedAt: number
+}
+
 export interface BookRecord {
   id: string
   title: string
@@ -15,6 +21,7 @@ export interface BookRecord {
   addedAt: number
   progress: number
   location: ReadingLocation
+  bookmark?: ReadingBookmark | null
   blob: Blob
 }
 
@@ -42,6 +49,7 @@ export interface OpenedReader {
   sectionCount: number
   sectionTitles: string[]
   location: ReadingLocation
+  bookmark: ReadingBookmark | null
   progress: number
   section: ReaderSection
 }
