@@ -1,0 +1,82 @@
+:root {
+  color-scheme: light;
+  font-family: "Outfit Variable", "Segoe UI", sans-serif;
+  background: #e4ebe6;
+  color: #1a1f1c;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  min-height: 100dvh;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+.reader-surface {
+  transition: background-color 240ms ease, color 240ms ease;
+}
+
+.reader-surface ::selection {
+  background: var(--reader-selection);
+}
+
+.reader-html p {
+  margin: 0 0 1em;
+}
+
+.reader-html h1,
+.reader-html h2,
+.reader-html h3,
+.reader-html h4 {
+  line-height: 1.25;
+  margin: 1.2em 0 0.45em;
+}
+
+.fade-up {
+  animation: fade-up 280ms ease;
+}
+
+.translation-sheet {
+  animation: sheet-in 220ms ease;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-up,
+  .translation-sheet,
+  .reader-surface {
+    animation: none;
+    transition: none;
+  }
+}

@@ -1,0 +1,17 @@
+---
+description: Nível de rigor e stack deste projeto
+alwaysApply: true
+---
+
+# Perfil deste projeto
+
+- Nível: `pessoal`
+- Lida com dados pessoais/sensíveis: não (livros e vocabulário ficam só neste dispositivo)
+- Exposto publicamente na internet: não (PWA local, sem conta e sem servidor)
+- Stack: Vite + React + TypeScript + Material UI + IndexedDB (Dexie)
+
+## O que cada nível exige
+
+- `pessoal`: priorize clareza e velocidade. Não aplique hardening, SEO nem auditoria a menos que eu peça.
+- `producao`: security-baseline e seo-web são obrigatórios. Não pule validação de entrada nem autorização no backend.
+- `saas`: security-baseline, seo-web e saas-hardening são obrigatórios, mais supabase-rls se o projeto usar Supabase. Nenhuma decisão de segurança pode ser adiada sem me avisar.
