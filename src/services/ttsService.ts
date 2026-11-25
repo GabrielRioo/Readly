@@ -332,7 +332,7 @@ export class SpeechPlayer {
 
     const text = this.chunks[this.index]
     const audio = new Audio()
-    audio.referrerPolicy = 'no-referrer'
+    audio.setAttribute('referrerpolicy', 'no-referrer')
     audio.preload = 'auto'
     audio.src = onlineTtsUrl(text)
     audio.playbackRate = clampRate(this.options.rate)
