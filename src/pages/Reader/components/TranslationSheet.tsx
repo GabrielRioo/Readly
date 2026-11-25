@@ -30,16 +30,12 @@ export function TranslationSheet({
       role="dialog"
       aria-label="Tradução"
       sx={{
-        position: 'fixed',
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 3,
-        maxHeight: '46vh',
+        flexShrink: 0,
+        maxHeight: '40vh',
         overflow: 'auto',
         px: 2,
         pt: 1.5,
-        pb: 'calc(16px + env(safe-area-inset-bottom))',
+        pb: 1.5,
         borderRadius: '18px 18px 0 0',
         background: theme.sheet,
         color: theme.id === 'black' ? theme.text : '#1a1f1c',
@@ -54,9 +50,6 @@ export function TranslationSheet({
           <CloseIcon />
         </IconButton>
       </Box>
-      <Typography lang="en" sx={{ fontFamily: '"Literata Variable", Palatino, serif', fontSize: 20, mb: 1 }}>
-        {request.text}
-      </Typography>
       {status === 'loading' && <CircularProgress size={22} />}
       {status === 'error' && <Typography color="error">{error}</Typography>}
       {status === 'ready' && translation && (

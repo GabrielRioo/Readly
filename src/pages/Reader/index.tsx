@@ -97,10 +97,7 @@ export function ReaderPage() {
         onToggleSpeech={toggleChapterAudio}
         onTheme={() => update({ theme: nextReaderTheme(preferences.theme) })}
       />
-      <Box
-        ref={scrollerRef}
-        sx={{ flex: 1, overflow: 'auto', pb: sheetOpen ? '42vh' : 0 }}
-      >
+      <Box ref={scrollerRef} sx={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
         {reader.sectionStatus === 'loading' && (
           <Typography sx={{ px: 2.5, pt: 2, color: theme.muted }}>Abrindo trecho…</Typography>
         )}
@@ -129,21 +126,7 @@ export function ReaderPage() {
           onRate={(rate) => update({ speechRate: rate })}
         />
       )}
-      <ReaderFooter
-        theme={theme}
-        label={`${section.title} · ${formatPercent(book.progress)}`}
-        fontSize={preferences.fontSize}
-        canPrev={section.index > 0}
-        canNext={section.index < book.sectionCount - 1}
-        titles={book.sectionTitles}
-        sectionIndex={section.index}
-        sectionCount={book.sectionCount}
-        onFont={(size) => update({ fontSize: size })}
-        onPrev={() => moveTo(section.index - 1)}
-        onNext={() => moveTo(section.index + 1)}
-        onPick={moveTo}
-      />
-      {lookup.request && (
+      {sheetOpen && lookup.request && (
         <TranslationSheet
           theme={theme}
           request={lookup.request}
@@ -164,6 +147,20 @@ export function ReaderPage() {
           }}
         />
       )}
+      <ReaderFooter
+        theme={theme}
+        progressLabel={formatPercent(book.progress)}
+        fontSize={preferences.fontSize}
+        canPrev={section.index > 0}
+        canNext={section.index < book.sectionCount - 1}
+        titles={book.sectionTitles}
+        sectionIndex={section.index}
+        sectionCount={book.sectionCount}
+        onFont={(size) => update({ fontSize: size })}
+        onPrev={() => moveTo(section.index - 1)}
+        onNext={() => moveTo(section.index + 1)}
+        onPick={moveTo}
+      />
     </Box>
   )
 }

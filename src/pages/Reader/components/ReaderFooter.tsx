@@ -4,7 +4,7 @@ import type { ReaderTheme } from '../../../theme/readerThemes.ts'
 
 export function ReaderFooter({
   theme,
-  label,
+  progressLabel,
   fontSize,
   canPrev,
   canNext,
@@ -17,7 +17,7 @@ export function ReaderFooter({
   onPick,
 }: {
   theme: ReaderTheme
-  label: string
+  progressLabel: string
   fontSize: number
   canPrev: boolean
   canNext: boolean
@@ -33,55 +33,60 @@ export function ReaderFooter({
     <Box
       component="footer"
       sx={{
+        flexShrink: 0,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 0.5,
         px: 1.5,
-        pt: 1,
-        pb: 'calc(10px + env(safe-area-inset-bottom))',
+        py: 0.5,
+        pb: 'calc(6px + env(safe-area-inset-bottom))',
+        minHeight: 48,
         borderTop: `1px solid ${theme.muted}33`,
         background: theme.background,
         color: theme.text,
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <IconButton aria-label="Diminuir texto" onClick={() => onFont(fontSize - 1)} sx={{ color: theme.text }}>
-          <Typography sx={{ fontSize: 14 }}>A−</Typography>
-        </IconButton>
-        <IconButton aria-label="Aumentar texto" onClick={() => onFont(fontSize + 1)} sx={{ color: theme.text }}>
-          <Typography sx={{ fontSize: 18 }}>A+</Typography>
-        </IconButton>
-        <IconButton aria-label="Trecho anterior" disabled={!canPrev} onClick={onPrev} sx={{ color: theme.text }}>
-          <Typography>‹</Typography>
-        </IconButton>
-        {titles.length > 0 ? (
-          <Box
-            component="select"
-            aria-label="Ir para trecho"
-            value={sectionIndex}
-            onChange={(event) => onPick(Number(event.target.value))}
-            sx={{
-              flex: 1,
-              minHeight: 44,
-              border: 0,
-              background: 'transparent',
-              color: theme.text,
-              maxWidth: '100%',
-            }}
-          >
-            {titles.map((title, index) => (
-              <option key={`${title}-${index}`} value={index}>
-                {title}
-              </option>
-            ))}
-          </Box>
-        ) : (
-          <PageField key={sectionIndex} page={sectionIndex + 1} max={sectionCount} theme={theme} onPick={onPick} />
-        )}
-        <IconButton aria-label="Próximo trecho" disabled={!canNext} onClick={onNext} sx={{ color: theme.text }}>
-          <Typography>›</Typography>
-        </IconButton>
-      </Box>
-      <Typography variant="body2" sx={{ color: theme.muted, px: 1, pb: 0.5 }}>
-        {label}. Selecione para traduzir ou passe o mouse sobre a palavra.
+      <IconButton aria-label="Diminuir texto" size="small" onClick={() => onFont(fontSize - 1)} sx={{ color: theme.text }}>
+        <Typography sx={{ fontSize: 14 }}>A−</Typography>
+      </IconButton>
+      <IconButton aria-label="Aumentar texto" size="small" onClick={() => onFont(fontSize + 1)} sx={{ color: theme.text }}>
+        <Typography sx={{ fontSize: 18 }}>A+</Typography>
+      </IconButton>
+      <IconButton aria-label="Trecho anterior" size="small" disabled={!canPrev} onClick={onPrev} sx={{ color: theme.text }}>
+        <Typography>‹</Typography>
+      </IconButton>
+      {titles.length > 0 ? (
+        <Box
+          component="select"
+          aria-label="Ir para trecho"
+          value={sectionIndex}
+          onChange={(event) => onPick(Number(event.target.value))}
+          sx={{
+            flex: 1,
+            minWidth: 0,
+            minHeight: 36,
+            border: 0,
+            background: 'transparent',
+            color: theme.text,
+          }}
+        >
+          {titles.map((title, index) => (
+            <option key={`${title}-${index}`} value={index}>
+              {title}
+            </option>
+          ))}
+        </Box>
+      ) : (
+        <PageField key={sectionIndex} page={sectionIndex + 1} max={sectionCount} theme={theme} onPick={onPick} />
+      )}
+      <Typography variant="body2" sx={{ color: theme.muted, px: 0.5, flexShrink: 0 }}>
+        {titles.length > 0 ? `${sectionIndex + 1} · ${progressLabel}` : progressLabel}
       </Typography>
+      <IconButton aria-label="Próximo trecho" size="small" disabled={!canNext} onClick={onNext} sx={{ color: theme.text }}>
+        <Typography>›</Typography>
+      </IconButton>
     </Box>
   )
 }
@@ -117,12 +122,13 @@ function PageField({
         if (event.key === 'Enter') commit()
       }}
       sx={{
-        width: 72,
-        minHeight: 44,
+        width: 48,
+        minHeight: 36,
         textAlign: 'center',
         border: 0,
         background: 'transparent',
         color: theme.text,
+        flexShrink: 0,
       }}
     />
   )
