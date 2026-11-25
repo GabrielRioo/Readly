@@ -48,7 +48,7 @@ export async function loadPdfSection(pdf: PDFDocumentProxy, index: number): Prom
     }
     if (line.trim()) lines.push(line.trim())
 
-    const text = linesToParagraphs(lines)
+    const text = stripPrintedPageNumber(linesToParagraphs(lines), pageNumber)
     if (!text) {
       const message = 'Esta página não tem texto selecionável. Se o PDF for uma imagem escaneada, a leitura automática não funciona.'
       return { index, title, html: `<p>${message}</p>`, text: message }
@@ -94,4 +94,33 @@ function linesToParagraphs(lines: string[]): string {
 
   if (current) paragraphs.push(current)
   return paragraphs.join('\n\n').trim()
+}
+
+function stripPrintedPageNumber(text: string, pageNumber: number): string {
+  if (!text) return text
+  const page = String(pageNumber)
+  const lonePage = new RegExp(
+    `^(?:[-–—•·.\\s]*)(${escapeRegExp(page)})(?:[-–—•·.\\s]*)$`,
+  )
+  const leadingPage = new RegExp(`^${escapeRegExp(page)}(?=\\s+[A-Za-z“"'(])`)
+  const trailingPage = new RegExp(`(?<=[A-Za-z.,;:!?”"')])\\s+${escapeRegExp(page)}$`)
+
+  const paragraphs = text
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean)
+    .filter((paragraph) => !lonePage.test(paragraph))
+    .map((paragraph, index, all) => {
+      let next = paragraph
+      if (index === 0) next = next.replace(leadingPage, '').trim()
+      if (index === all.length - 1) next = next.replace(trailingPage, '').trim()
+      return next
+    })
+    .filter(Boolean)
+
+  return paragraphs.join('\n\n').trim()
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
