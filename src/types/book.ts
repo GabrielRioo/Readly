@@ -8,7 +8,9 @@ export interface ReadingLocation {
 
 export interface ReadingBookmark {
   sectionIndex: number
-  blockIndex: number
+  startOffset: number
+  length: number
+  quote: string
   updatedAt: number
 }
 

@@ -79,12 +79,20 @@ export function useReaderDocument(bookId: string | undefined) {
     )
   }
 
-  async function setBookmark(blockIndex: number | null) {
+  async function setBookmark(
+    input: { startOffset: number; length: number; quote: string } | null,
+  ) {
     if (!book || !section) return
     const bookmark: ReadingBookmark | null =
-      blockIndex === null
+      input === null
         ? null
-        : { sectionIndex: section.index, blockIndex, updatedAt: Date.now() }
+        : {
+            sectionIndex: section.index,
+            startOffset: input.startOffset,
+            length: input.length,
+            quote: input.quote,
+            updatedAt: Date.now(),
+          }
     setBook((current) => (current ? { ...current, bookmark } : current))
     await saveReadingBookmark(book.id, bookmark)
   }

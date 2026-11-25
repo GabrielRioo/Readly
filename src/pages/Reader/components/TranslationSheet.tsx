@@ -1,3 +1,5 @@
+import BookmarkIcon from '@mui/icons-material/Bookmark'
+import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder'
 import CloseIcon from '@mui/icons-material/Close'
 import { Box, Button, CircularProgress, IconButton, Typography } from '@mui/material'
 import { useEffect, useRef } from 'react'
@@ -10,9 +12,11 @@ export function TranslationSheet({
   status,
   error,
   saved,
+  bookmarked,
   onClose,
   onSave,
   onSpeak,
+  onBookmark,
 }: {
   theme: ReaderTheme
   translation: string | null
@@ -20,9 +24,11 @@ export function TranslationSheet({
   status: 'idle' | 'loading' | 'ready' | 'error'
   error: string | null
   saved: boolean
+  bookmarked: boolean
   onClose: () => void
   onSave: () => void
   onSpeak: () => void
+  onBookmark: () => void
 }) {
   const sheetRef = useRef<HTMLDivElement>(null)
   const showMeanings = meanings.length > 1
@@ -32,7 +38,7 @@ export function TranslationSheet({
       const target = event.target
       if (!(target instanceof Node)) return
       if (sheetRef.current?.contains(target)) return
-      if (target instanceof Element && target.closest('.reader-lookup-mark')) return
+      if (target instanceof Element && target.closest('.reader-lookup-mark, .reader-bookmark-mark')) return
       onClose()
     }
 
@@ -90,6 +96,14 @@ export function TranslationSheet({
       <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
         <Button variant="outlined" onClick={onSpeak} sx={{ color: 'inherit', borderColor: 'currentColor' }}>
           Ouvir
+        </Button>
+        <Button
+          variant="outlined"
+          onClick={onBookmark}
+          startIcon={bookmarked ? <BookmarkIcon /> : <BookmarkBorderIcon />}
+          sx={{ color: 'inherit', borderColor: 'currentColor' }}
+        >
+          {bookmarked ? 'Marcado' : 'Marcar'}
         </Button>
         <Button variant="contained" disabled={status !== 'ready' || saved} onClick={onSave}>
           {saved ? 'Salvo' : 'Salvar'}

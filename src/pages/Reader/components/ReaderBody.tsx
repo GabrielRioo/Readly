@@ -1,6 +1,7 @@
 import { Box } from '@mui/material'
 import { forwardRef, useLayoutEffect, useRef } from 'react'
-import { applyBookmarkMark } from '../../../utils/readerDom.ts'
+import type { ReadingBookmark } from '../../../types/book.ts'
+import { applyBookmarkByOffset, clearBookmarkMark } from '../../../utils/readerDom.ts'
 
 export const ReaderBody = forwardRef<
   HTMLDivElement,
@@ -8,16 +9,20 @@ export const ReaderBody = forwardRef<
     html: string
     fontSize: number
     lineHeight: number
-    bookmarkBlockIndex: number | null
+    bookmark: ReadingBookmark | null
   }
->(function ReaderBody({ html, fontSize, lineHeight, bookmarkBlockIndex }, ref) {
+>(function ReaderBody({ html, fontSize, lineHeight, bookmark }, ref) {
   const localRef = useRef<HTMLDivElement | null>(null)
 
   useLayoutEffect(() => {
     const element = localRef.current
     if (!element) return
-    applyBookmarkMark(element, bookmarkBlockIndex)
-  }, [html, bookmarkBlockIndex])
+    if (!bookmark || typeof bookmark.startOffset !== 'number' || bookmark.length <= 0) {
+      clearBookmarkMark(element)
+      return
+    }
+    applyBookmarkByOffset(element, bookmark.startOffset, bookmark.length)
+  }, [html, bookmark])
 
   return (
     <Box

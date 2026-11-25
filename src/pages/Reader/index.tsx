@@ -7,9 +7,9 @@ import { saveVocabularyEntry } from '../../services/vocabularyStorage.ts'
 import { nextReaderTheme, readerThemes } from '../../theme/readerThemes.ts'
 import {
   clearLookupHighlight,
-  findBookmarkBlockIndex,
   highlightSelectionIn,
-  scrollToBookmark,
+  promoteLookupToBookmark,
+  scrollToBookmarkMark,
 } from '../../utils/readerDom.ts'
 import { formatPercent } from '../../utils/text.ts'
 import { AudioBar } from './components/AudioBar.tsx'
@@ -83,8 +83,18 @@ export function ReaderPage() {
   const book = reader.book
   const section = reader.section
   const sheetOpen = lookup.request !== null
-  const bookmarkOnSection =
-    book.bookmark && book.bookmark.sectionIndex === section.index ? book.bookmark.blockIndex : null
+  const sectionBookmark =
+    book.bookmark &&
+    book.bookmark.sectionIndex === section.index &&
+    typeof book.bookmark.startOffset === 'number'
+      ? book.bookmark
+      : null
+  const selectionBookmarked = Boolean(
+    lookup.request &&
+      sectionBookmark &&
+      sectionBookmark.quote === lookup.request.text &&
+      sectionBookmark.length > 0,
+  )
 
   function toggleChapterAudio() {
     if (speech.status === 'playing') speech.pause()
@@ -101,20 +111,22 @@ export function ReaderPage() {
   function toggleBookmark() {
     const scroller = scrollerRef.current
     const body = bodyRef.current
-    if (!scroller || !body) return
+    if (!body) return
 
-    if (bookmarkOnSection !== null) {
+    if (selectionBookmarked) {
       void reader.setBookmark(null)
       return
     }
 
-    const blockIndex = findBookmarkBlockIndex(scroller, body)
-    if (blockIndex < 0) return
-    scrollToBookmark(scroller, body, blockIndex)
-    const max = scroller.scrollHeight - scroller.clientHeight
-    const ratio = max <= 0 ? 1 : scroller.scrollTop / max
-    void reader.setBookmark(blockIndex)
-    void reader.persistRatio(ratio)
+    const placed = promoteLookupToBookmark(body)
+    if (!placed) return
+    void reader.setBookmark(placed)
+    if (scroller) {
+      scrollToBookmarkMark(scroller, body)
+      const max = scroller.scrollHeight - scroller.clientHeight
+      const ratio = max <= 0 ? 1 : scroller.scrollTop / max
+      void reader.persistRatio(ratio)
+    }
   }
 
   return (
@@ -126,14 +138,12 @@ export function ReaderPage() {
         title={book.title}
         theme={theme}
         playing={speech.status === 'playing'}
-        bookmarkActive={bookmarkOnSection !== null}
         onBack={() => {
           speech.stop()
           navigate('/')
         }}
         onToggleSpeech={toggleChapterAudio}
         onTheme={() => update({ theme: nextReaderTheme(preferences.theme) })}
-        onToggleBookmark={toggleBookmark}
       />
       <Box ref={scrollerRef} sx={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
         {reader.sectionStatus === 'loading' && (
@@ -149,7 +159,7 @@ export function ReaderPage() {
           html={section.html}
           fontSize={preferences.fontSize}
           lineHeight={preferences.lineHeight}
-          bookmarkBlockIndex={bookmarkOnSection}
+          bookmark={sectionBookmark}
         />
       </Box>
       {speech.error && (
@@ -178,7 +188,9 @@ export function ReaderPage() {
           status={lookup.status}
           error={lookup.error}
           saved={lookup.saved}
+          bookmarked={selectionBookmarked}
           onClose={closeLookup}
+          onBookmark={toggleBookmark}
           onSpeak={() => void speech.speak(lookup.request?.text ?? '')}
           onSave={() => {
             if (!lookup.request || !lookup.translation) return
