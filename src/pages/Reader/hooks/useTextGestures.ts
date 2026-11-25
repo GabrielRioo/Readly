@@ -5,6 +5,9 @@ interface TextGestureHandlers {
   onSelection: (text: string) => void
 }
 
+/** Wait until selection stops changing before opening translation. */
+const SELECTION_STABLE_MS = 450
+
 export function useTextGestures(
   rootRef: RefObject<HTMLElement | null>,
   enabled: boolean,
@@ -18,6 +21,7 @@ export function useTextGestures(
 
     let pointerDown = false
     let publishTimer = 0
+    let activePointerType: string | null = null
 
     const publishIfSelected = () => {
       const text = selectedTextWithin(root)
@@ -32,32 +36,45 @@ export function useTextGestures(
     const onPointerDown = (event: PointerEvent) => {
       if (!(event.target instanceof Node) || !root.contains(event.target)) return
       pointerDown = true
+      activePointerType = event.pointerType
       window.clearTimeout(publishTimer)
     }
 
-    const onPointerUp = () => {
+    const finishPointer = (cancelled: boolean) => {
       if (!pointerDown) return
       pointerDown = false
-      // Wait for the browser to finish updating the selection after release.
-      schedulePublish(30)
+      const touchLike = activePointerType === 'touch' || activePointerType === 'pen'
+      activePointerType = null
+
+      // On touch, browsers often cancel the pointer when long-press selection starts.
+      // Publishing immediately would lock the first word and block expanding the phrase.
+      if (cancelled && touchLike) {
+        schedulePublish(SELECTION_STABLE_MS)
+        return
+      }
+
+      schedulePublish(touchLike ? SELECTION_STABLE_MS : 40)
     }
 
+    const onPointerUp = () => finishPointer(false)
+    const onPointerCancel = () => finishPointer(true)
+
     const onSelectionChange = () => {
-      // Ignore selection updates while the user is still dragging.
       if (pointerDown) return
-      schedulePublish(200)
+      // Keep delaying while the user adjusts selection handles on mobile.
+      schedulePublish(SELECTION_STABLE_MS)
     }
 
     document.addEventListener('pointerdown', onPointerDown)
     document.addEventListener('pointerup', onPointerUp)
-    document.addEventListener('pointercancel', onPointerUp)
+    document.addEventListener('pointercancel', onPointerCancel)
     document.addEventListener('selectionchange', onSelectionChange)
 
     return () => {
       window.clearTimeout(publishTimer)
       document.removeEventListener('pointerdown', onPointerDown)
       document.removeEventListener('pointerup', onPointerUp)
-      document.removeEventListener('pointercancel', onPointerUp)
+      document.removeEventListener('pointercancel', onPointerCancel)
       document.removeEventListener('selectionchange', onSelectionChange)
     }
   }, [enabled, rootRef])
