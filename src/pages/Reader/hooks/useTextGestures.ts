@@ -17,98 +17,139 @@ export function useTextGestures(
     if (!root || !enabled) return
 
     let mouseDown = false
-    let activeTouches = 0
     let awaitingTouchRelease = false
+    let lastSelectedText = ''
     let publishTimer = 0
-
-    const isTouchBlocking = () => activeTouches > 0 || awaitingTouchRelease
-
-    const publishIfSelected = () => {
-      if (mouseDown || isTouchBlocking()) return
-      const text = selectedTextWithin(root)
-      if (text) onSelection(text)
-    }
-
-    const schedulePublish = (delay: number) => {
-      window.clearTimeout(publishTimer)
-      publishTimer = window.setTimeout(publishIfSelected, delay)
-    }
+    const touchPointers = new Set<number>()
 
     const clearPublish = () => window.clearTimeout(publishTimer)
 
     const eventInRoot = (target: EventTarget | null) =>
       target instanceof Node && root.contains(target)
 
-    const releaseTouchAndPublish = () => {
-      activeTouches = 0
-      awaitingTouchRelease = false
-      schedulePublish(40)
+    const rememberSelection = () => {
+      const text = selectedTextWithin(root)
+      if (text) lastSelectedText = text
+      return text
     }
 
-    const onTouchStart = (event: TouchEvent) => {
-      activeTouches = event.touches.length
+    const publishCaptured = (preferred?: string) => {
+      const text = preferred || selectedTextWithin(root) || lastSelectedText
+      if (!text) return
+      lastSelectedText = ''
+      onSelection(text)
+    }
+
+    const publishAfterRelease = () => {
+      mouseDown = false
+      awaitingTouchRelease = false
+      touchPointers.clear()
+      clearPublish()
+
+      // Mobile browsers often finalize the selection slightly after lift.
+      const immediate = rememberSelection()
+      publishTimer = window.setTimeout(() => {
+        publishCaptured(immediate || undefined)
+      }, 80)
+    }
+
+    const onPointerDown = (event: PointerEvent) => {
+      if (event.pointerType === 'mouse') {
+        if (!eventInRoot(event.target)) return
+        mouseDown = true
+        clearPublish()
+        return
+      }
+
+      if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+        touchPointers.add(event.pointerId)
+        awaitingTouchRelease = false
+        clearPublish()
+      }
+    }
+
+    const onPointerUp = (event: PointerEvent) => {
+      if (event.pointerType === 'mouse') {
+        if (!mouseDown) return
+        publishAfterRelease()
+        return
+      }
+
+      if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+        touchPointers.delete(event.pointerId)
+        if (touchPointers.size === 0 || awaitingTouchRelease) {
+          publishAfterRelease()
+        }
+      }
+    }
+
+    const onPointerCancel = (event: PointerEvent) => {
+      if (event.pointerType === 'mouse') return
+      touchPointers.delete(event.pointerId)
+      // Long-press selection cancels the pointer while the finger may still be down.
+      awaitingTouchRelease = true
+      clearPublish()
+      rememberSelection()
+    }
+
+    const onTouchStart = () => {
       awaitingTouchRelease = false
       clearPublish()
     }
 
     const onTouchEnd = (event: TouchEvent) => {
-      activeTouches = event.touches.length
-      if (activeTouches > 0) return
-      releaseTouchAndPublish()
-    }
-
-    const onTouchCancel = (event: TouchEvent) => {
-      // Browser may cancel the touch when long-press selection starts,
-      // while the finger is still on the screen.
-      activeTouches = event.touches.length
-      awaitingTouchRelease = true
-      clearPublish()
+      if (event.touches.length > 0) return
+      publishAfterRelease()
     }
 
     const onMouseUp = () => {
-      // Fallback when touchcancel removed the touch point before the finger lifted.
-      if (!awaitingTouchRelease) return
-      releaseTouchAndPublish()
-    }
-
-    const onPointerDown = (event: PointerEvent) => {
-      if (event.pointerType !== 'mouse') return
-      if (!eventInRoot(event.target)) return
-      mouseDown = true
-      clearPublish()
-    }
-
-    const onPointerUp = (event: PointerEvent) => {
-      if (event.pointerType !== 'mouse') return
-      if (!mouseDown) return
-      mouseDown = false
-      schedulePublish(40)
+      if (!awaitingTouchRelease && !mouseDown) return
+      publishAfterRelease()
     }
 
     const onSelectionChange = () => {
-      if (mouseDown || isTouchBlocking()) {
+      rememberSelection()
+
+      if (mouseDown || touchPointers.size > 0) {
         clearPublish()
         return
       }
-      schedulePublish(250)
+
+      if (awaitingTouchRelease) {
+        // Finger may still be down after touchcancel; keep waiting for a real release
+        // event, but if the browser never sends one, fall back after the selection settles.
+        clearPublish()
+        publishTimer = window.setTimeout(() => {
+          if (mouseDown || touchPointers.size > 0) return
+          publishAfterRelease()
+        }, 900)
+        return
+      }
+
+      // Keyboard selection path.
+      clearPublish()
+      publishTimer = window.setTimeout(() => {
+        if (mouseDown || touchPointers.size > 0 || awaitingTouchRelease) return
+        publishCaptured()
+      }, 250)
     }
 
-    document.addEventListener('touchstart', onTouchStart, { passive: true })
-    document.addEventListener('touchend', onTouchEnd, { passive: true })
-    document.addEventListener('touchcancel', onTouchCancel, { passive: true })
-    document.addEventListener('mouseup', onMouseUp)
-    document.addEventListener('pointerdown', onPointerDown)
-    document.addEventListener('pointerup', onPointerUp)
+    document.addEventListener('pointerdown', onPointerDown, true)
+    document.addEventListener('pointerup', onPointerUp, true)
+    document.addEventListener('pointercancel', onPointerCancel, true)
+    document.addEventListener('touchstart', onTouchStart, { passive: true, capture: true })
+    document.addEventListener('touchend', onTouchEnd, { passive: true, capture: true })
+    document.addEventListener('mouseup', onMouseUp, true)
     document.addEventListener('selectionchange', onSelectionChange)
 
     return () => {
       clearPublish()
-      document.removeEventListener('touchstart', onTouchStart)
-      document.removeEventListener('touchend', onTouchEnd)
-      document.removeEventListener('touchcancel', onTouchCancel)
-      document.removeEventListener('mouseup', onMouseUp)
-      document.removeEventListener('pointerdown', onPointerDown)
-      document.removeEventListener('pointerup', onPointerUp)
+      document.removeEventListener('pointerdown', onPointerDown, true)
+      document.removeEventListener('pointerup', onPointerUp, true)
+      document.removeEventListener('pointercancel', onPointerCancel, true)
+      document.removeEventListener('touchstart', onTouchStart, true)
+      document.removeEventListener('touchend', onTouchEnd, true)
+      document.removeEventListener('mouseup', onMouseUp, true)
       document.removeEventListener('selectionchange', onSelectionChange)
     }
   }, [enabled, rootRef])
