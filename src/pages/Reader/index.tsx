@@ -173,7 +173,6 @@ export function ReaderPage() {
       {sheetOpen && lookup.request && (
         <TranslationSheet
           theme={theme}
-          request={lookup.request}
           translation={lookup.translation}
           meanings={lookup.meanings}
           status={lookup.status}

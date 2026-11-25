@@ -21,7 +21,7 @@ export const ReaderBody = forwardRef<
 
   return (
     <Box
-      ref={(node) => {
+      ref={(node: HTMLDivElement | null) => {
         localRef.current = node
         if (typeof ref === 'function') ref(node)
         else if (ref) ref.current = node

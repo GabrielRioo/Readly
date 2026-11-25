@@ -2,11 +2,9 @@ import CloseIcon from '@mui/icons-material/Close'
 import { Box, Button, CircularProgress, IconButton, Typography } from '@mui/material'
 import { useEffect, useRef } from 'react'
 import type { ReaderTheme } from '../../../theme/readerThemes.ts'
-import type { LookupRequest } from '../hooks/useTextLookup.ts'
 
 export function TranslationSheet({
   theme,
-  request,
   translation,
   meanings,
   status,
@@ -17,7 +15,6 @@ export function TranslationSheet({
   onSpeak,
 }: {
   theme: ReaderTheme
-  request: LookupRequest
   translation: string | null
   meanings: string[]
   status: 'idle' | 'loading' | 'ready' | 'error'
