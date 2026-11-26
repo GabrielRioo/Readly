@@ -4,6 +4,7 @@ import FilterListIcon from '@mui/icons-material/FilterList'
 import SearchIcon from '@mui/icons-material/Search'
 import {
   Box,
+  Button,
   IconButton,
   InputAdornment,
   Menu,
@@ -14,6 +15,7 @@ import {
 import { useState } from 'react'
 import type { ReaderTheme } from '../../../theme/readerThemes.ts'
 import type { LibraryFormatFilter, LibrarySort } from '../hooks/useLibraryFilters.ts'
+import { ReadlyWordmark } from './ReadlyWordmark.tsx'
 
 const formatOptions: { value: LibraryFormatFilter; label: string }[] = [
   { value: 'all', label: 'Todos os formatos' },
@@ -56,55 +58,66 @@ export function LibraryChrome({
   const [filterAnchor, setFilterAnchor] = useState<null | HTMLElement>(null)
 
   return (
-    <Box sx={{ mb: 2 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-        <TextField
-          value={query}
-          onChange={(event) => onQuery(event.target.value)}
-          placeholder="Pesquisar no Readly"
-          fullWidth
-          size="small"
-          slotProps={{
-            htmlInput: { 'aria-label': 'Pesquisar livros' },
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon sx={{ color: 'text.secondary' }} />
-                </InputAdornment>
-              ),
-            },
-          }}
-          sx={{
-            '& .MuiOutlinedInput-root': {
-              borderRadius: 999,
-              bgcolor: 'background.paper',
-              minHeight: 46,
-            },
-          }}
-        />
+    <Box sx={{ mb: 2.25 }}>
+      <Box
+        sx={{
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          mb: 1.75,
+          minHeight: 44,
+        }}
+      >
+        <ReadlyWordmark />
         <IconButton
           aria-label={`Tema ${theme.label}. Trocar tema.`}
           onClick={onTheme}
-          sx={chromeIconSx}
+          sx={{ ...chromeIconSx, position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)' }}
         >
           <ContrastIcon />
         </IconButton>
-        {canAdd && (
-          <IconButton
-            aria-label={importing ? 'Importando livros' : 'Adicionar livro'}
+      </Box>
+
+      <TextField
+        value={query}
+        onChange={(event) => onQuery(event.target.value)}
+        placeholder="Pesquisar no Readly"
+        fullWidth
+        size="small"
+        slotProps={{
+          htmlInput: { 'aria-label': 'Pesquisar livros' },
+          input: {
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon sx={{ color: 'text.secondary' }} />
+              </InputAdornment>
+            ),
+          },
+        }}
+        sx={{
+          mb: 1.5,
+          '& .MuiOutlinedInput-root': {
+            borderRadius: 999,
+            bgcolor: 'background.paper',
+            minHeight: 46,
+          },
+        }}
+      />
+
+      {canAdd && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+          <Button
+            variant="contained"
             onClick={onAdd}
             disabled={importing}
-            sx={{
-              ...chromeIconSx,
-              bgcolor: 'primary.main',
-              color: 'primary.contrastText',
-              '&:hover': { bgcolor: 'primary.dark' },
-            }}
+            startIcon={<AddIcon />}
+            sx={{ borderRadius: 999, px: 2.75, minWidth: 160 }}
           >
-            <AddIcon />
-          </IconButton>
-        )}
-      </Box>
+            {importing ? 'Importando…' : 'Adicionar'}
+          </Button>
+        </Box>
+      )}
 
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
         <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
