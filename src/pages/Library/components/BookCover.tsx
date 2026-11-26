@@ -32,7 +32,8 @@ export function BookCover({
 }) {
   const { preferences } = usePreferences()
   const [url, setUrl] = useState<string | null>(null)
-  const tone = preferences.theme === 'kindle' ? kindleTone[format] : formatTone[format]
+  const kindle = preferences.theme === 'kindle'
+  const tone = kindle ? kindleTone[format] : formatTone[format]
   const initial = title.trim().slice(0, 1).toUpperCase() || 'R'
 
   useEffect(() => {
@@ -51,10 +52,10 @@ export function BookCover({
         position: 'relative',
         width: '100%',
         aspectRatio: '2 / 3',
-        borderRadius: '6px',
+        borderRadius: '2px',
         overflow: 'hidden',
-        background: url ? '#000' : `linear-gradient(160deg, ${tone.from}, ${tone.to})`,
-        boxShadow: '0 12px 28px rgba(0, 0, 0, 0.28)',
+        background: url ? '#111' : `linear-gradient(160deg, ${tone.from}, ${tone.to})`,
+        boxShadow: kindle ? '0 1px 0 rgba(0,0,0,0.2)' : '0 8px 18px rgba(0, 0, 0, 0.22)',
         border: 0,
         outline: 0,
         isolation: 'isolate',
@@ -74,9 +75,9 @@ export function BookCover({
             objectPosition: 'center',
             display: 'block',
             border: 0,
-            // Bleed past rounded edges to avoid 1px light fringe.
             transform: 'scale(1.04)',
             transformOrigin: 'center',
+            filter: kindle ? 'grayscale(1) contrast(1.05)' : 'none',
           }}
         />
       ) : (
@@ -85,24 +86,16 @@ export function BookCover({
             height: '100%',
             display: 'grid',
             placeItems: 'center',
-            px: 1.5,
+            px: 1,
             color: 'rgba(255,255,255,0.92)',
             textAlign: 'center',
           }}
         >
           <Box>
-            <Typography
-              sx={{
-                fontFamily: '"Literata Variable", Palatino, serif',
-                fontSize: '2rem',
-                fontWeight: 650,
-                lineHeight: 1,
-                mb: 1,
-              }}
-            >
+            <Typography sx={{ fontSize: '1.5rem', fontWeight: 700, lineHeight: 1, mb: 0.75 }}>
               {initial}
             </Typography>
-            <MenuBookOutlinedIcon sx={{ opacity: 0.7, fontSize: 22 }} />
+            <MenuBookOutlinedIcon sx={{ opacity: 0.7, fontSize: 18 }} />
           </Box>
         </Box>
       )}
@@ -114,38 +107,28 @@ export function BookCover({
             left: 0,
             right: 0,
             bottom: 0,
-            px: 1.1,
-            pt: 4,
-            pb: 1.1,
-            background: 'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.78) 55%, rgba(0,0,0,0.9) 100%)',
+            px: 0.85,
+            pt: 3.25,
+            pb: 0.85,
+            background: 'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.82) 48%, rgba(0,0,0,0.94) 100%)',
             color: '#fff',
           }}
         >
           <Typography
             sx={{
-              fontFamily: '"Literata Variable", Palatino, serif',
               fontWeight: 650,
-              fontSize: '0.92rem',
+              fontSize: '0.78rem',
               lineHeight: 1.2,
               display: '-webkit-box',
               WebkitLineClamp: 2,
               WebkitBoxOrient: 'vertical',
               overflow: 'hidden',
-              textShadow: '0 1px 2px rgba(0,0,0,0.45)',
             }}
           >
             {title}
           </Typography>
           {typeof progress === 'number' && (
-            <Typography
-              sx={{
-                mt: 0.35,
-                fontSize: '0.78rem',
-                fontWeight: 700,
-                letterSpacing: '0.03em',
-                color: 'rgba(255,255,255,0.88)',
-              }}
-            >
+            <Typography sx={{ mt: 0.25, fontSize: '0.68rem', fontWeight: 700, color: 'rgba(255,255,255,0.88)' }}>
               {formatPercent(progress)}
             </Typography>
           )}

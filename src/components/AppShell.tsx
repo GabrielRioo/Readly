@@ -5,7 +5,7 @@ import { BottomNavigation, BottomNavigationAction, Box } from '@mui/material'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 
 const tabs = [
-  { label: 'Início', value: '/', icon: <MenuBookOutlinedIcon /> },
+  { label: 'Tela Inicial', value: '/', icon: <MenuBookOutlinedIcon /> },
   { label: 'Vocabulário', value: '/vocabulary', icon: <TranslateOutlinedIcon /> },
   { label: 'Ajustes', value: '/settings', icon: <SettingsOutlinedIcon /> },
 ]

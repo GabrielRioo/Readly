@@ -38,11 +38,10 @@ export function EmptyLibrary({ onAdd }: { onAdd: () => void }) {
           mb: 1,
         }}
       >
-        Sua estante está vazia
+        Sua biblioteca está vazia
       </Typography>
       <Typography color="text.secondary" sx={{ mb: 3, lineHeight: 1.55 }}>
-        Adicione um EPUB, PDF ou TXT em inglês. O arquivo fica só neste aparelho, com capa quando o
-        livro tiver uma.
+        Adicione um EPUB, PDF ou TXT em inglês. Depois é só pesquisar, filtrar e continuar a leitura.
       </Typography>
       <Button variant="contained" onClick={onAdd}>
         Adicionar livro
