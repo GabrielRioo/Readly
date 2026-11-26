@@ -3,6 +3,7 @@ import { Box, Typography } from '@mui/material'
 import { useEffect, useState } from 'react'
 import { usePreferences } from '../../../hooks/usePreferences.ts'
 import type { BookFormat } from '../../../types/book.ts'
+import { formatPercent } from '../../../utils/text.ts'
 
 const formatTone: Record<BookFormat, { from: string; to: string }> = {
   epub: { from: '#1f4d3a', to: '#2f6b52' },
@@ -20,10 +21,14 @@ export function BookCover({
   title,
   format,
   coverBlob,
+  progress,
+  showMeta = false,
 }: {
   title: string
   format: BookFormat
   coverBlob?: Blob | null
+  progress?: number
+  showMeta?: boolean
 }) {
   const { preferences } = usePreferences()
   const [url, setUrl] = useState<string | null>(null)
@@ -49,8 +54,7 @@ export function BookCover({
         borderRadius: '4px 10px 10px 4px',
         overflow: 'hidden',
         background: `linear-gradient(160deg, ${tone.from}, ${tone.to})`,
-        boxShadow:
-          '0 10px 24px rgba(26, 31, 28, 0.16), 0 1px 0 rgba(255,255,255,0.2) inset, -3px 0 0 rgba(0,0,0,0.12)',
+        boxShadow: '0 10px 24px rgba(26, 31, 28, 0.18), -2px 0 0 rgba(0,0,0,0.14)',
       }}
     >
       {url ? (
@@ -59,9 +63,14 @@ export function BookCover({
           src={url}
           alt=""
           sx={{
+            position: 'absolute',
+            inset: 0,
             width: '100%',
             height: '100%',
             objectFit: 'cover',
+            objectPosition: 'center',
+            // Crop white page margins common on PDF cover renders.
+            transform: 'scale(1.08)',
             display: 'block',
           }}
         />
@@ -90,6 +99,51 @@ export function BookCover({
             </Typography>
             <MenuBookOutlinedIcon sx={{ opacity: 0.7, fontSize: 22 }} />
           </Box>
+        </Box>
+      )}
+
+      {showMeta && (
+        <Box
+          sx={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: 0,
+            px: 1.1,
+            pt: 4,
+            pb: 1.1,
+            background: 'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.78) 55%, rgba(0,0,0,0.9) 100%)',
+            color: '#fff',
+          }}
+        >
+          <Typography
+            sx={{
+              fontFamily: '"Literata Variable", Palatino, serif',
+              fontWeight: 650,
+              fontSize: '0.92rem',
+              lineHeight: 1.2,
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              textShadow: '0 1px 2px rgba(0,0,0,0.45)',
+            }}
+          >
+            {title}
+          </Typography>
+          {typeof progress === 'number' && (
+            <Typography
+              sx={{
+                mt: 0.35,
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                letterSpacing: '0.03em',
+                color: 'rgba(255,255,255,0.88)',
+              }}
+            >
+              {formatPercent(progress)}
+            </Typography>
+          )}
         </Box>
       )}
     </Box>

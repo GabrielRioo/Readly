@@ -1,6 +1,6 @@
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
-import { Box, IconButton, Typography } from '@mui/material'
+import { Box, IconButton } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
 import type { BookSummary } from '../../../types/book.ts'
 import { formatPercent } from '../../../utils/text.ts'
@@ -53,33 +53,13 @@ export function BookList({
               },
             }}
           >
-            <BookCover title={book.title} format={book.format} coverBlob={book.coverBlob} />
-            <Typography
-              sx={{
-                mt: 1.1,
-                fontFamily: '"Literata Variable", Palatino, serif',
-                fontWeight: 650,
-                fontSize: '0.98rem',
-                lineHeight: 1.25,
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical',
-                overflow: 'hidden',
-              }}
-            >
-              {book.title}
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                mt: 0.35,
-                color: 'text.secondary',
-                fontWeight: 600,
-                letterSpacing: '0.02em',
-              }}
-            >
-              {formatPercent(book.progress)}
-            </Typography>
+            <BookCover
+              title={book.title}
+              format={book.format}
+              coverBlob={book.coverBlob}
+              progress={book.progress}
+              showMeta
+            />
           </Box>
           <Box sx={{ position: 'absolute', top: 6, right: 6, display: 'grid', gap: 0.5 }}>
             <IconButton
@@ -108,8 +88,9 @@ export function BookList({
 const actionButtonSx = {
   width: 34,
   height: 34,
-  bgcolor: 'rgba(247,248,246,0.9)',
+  bgcolor: 'rgba(20,20,20,0.55)',
+  color: '#fff',
   backdropFilter: 'blur(4px)',
-  boxShadow: '0 2px 8px rgba(26,31,28,0.12)',
-  '&:hover': { bgcolor: 'rgba(247,248,246,0.98)' },
+  boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+  '&:hover': { bgcolor: 'rgba(20,20,20,0.72)' },
 } as const

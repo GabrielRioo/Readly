@@ -54,36 +54,20 @@ export function LibraryPage() {
           mb: 1,
         }}
       >
-        <Box>
-          <Typography
-            component="p"
-            sx={{
-              m: 0,
-              mb: 0.75,
-              fontSize: '0.72rem',
-              fontWeight: 700,
-              letterSpacing: '0.16em',
-              textTransform: 'uppercase',
-              color: 'text.secondary',
-            }}
-          >
-            Estante
-          </Typography>
-          <Typography
-            component="h1"
-            sx={{
-              m: 0,
-              fontFamily: '"Literata Variable", Palatino, serif',
-              fontWeight: 650,
-              fontSize: { xs: '2.35rem', sm: '2.75rem' },
-              letterSpacing: '-0.04em',
-              lineHeight: 0.95,
-              color: kindle ? 'text.primary' : '#1f4d3a',
-            }}
-          >
-            Readly
-          </Typography>
-        </Box>
+        <Typography
+          component="h1"
+          sx={{
+            m: 0,
+            fontFamily: '"Literata Variable", Palatino, serif',
+            fontWeight: 650,
+            fontSize: { xs: '2.35rem', sm: '2.75rem' },
+            letterSpacing: '-0.04em',
+            lineHeight: 0.95,
+            color: kindle ? 'text.primary' : '#1f4d3a',
+          }}
+        >
+          Readly
+        </Typography>
         {library.status === 'ready' && library.books.length > 0 && (
           <Button
             variant="contained"
