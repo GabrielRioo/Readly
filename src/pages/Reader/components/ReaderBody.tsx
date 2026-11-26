@@ -26,23 +26,33 @@ export const ReaderBody = forwardRef<
 
   return (
     <Box
-      ref={(node: HTMLDivElement | null) => {
-        localRef.current = node
-        if (typeof ref === 'function') ref(node)
-        else if (ref) ref.current = node
-      }}
-      className="reader-html fade-up"
-      lang="en"
       sx={{
         maxWidth: 680,
         mx: 'auto',
         px: 2.5,
-        py: 3,
-        fontFamily: '"Literata Variable", "Iowan Old Style", Palatino, serif',
-        fontSize,
-        lineHeight,
+        pt: 2,
+        pb: 4,
       }}
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
+    >
+      <Box className="reader-page-start" aria-hidden>
+        <span className="reader-page-start-rule" />
+        <span className="reader-page-start-label">Início da página</span>
+      </Box>
+      <Box
+        ref={(node: HTMLDivElement | null) => {
+          localRef.current = node
+          if (typeof ref === 'function') ref(node)
+          else if (ref) ref.current = node
+        }}
+        className="reader-html fade-up"
+        lang="en"
+        sx={{
+          fontFamily: '"Literata Variable", "Iowan Old Style", Palatino, serif',
+          fontSize,
+          lineHeight,
+        }}
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    </Box>
   )
 })

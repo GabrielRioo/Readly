@@ -145,7 +145,16 @@ export function ReaderPage() {
         onToggleSpeech={toggleChapterAudio}
         onTheme={() => update({ theme: nextReaderTheme(preferences.theme) })}
       />
-      <Box ref={scrollerRef} sx={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+      <Box
+        ref={scrollerRef}
+        sx={{
+          flex: 1,
+          overflow: 'auto',
+          minHeight: 0,
+          overscrollBehavior: 'none',
+          WebkitOverflowScrolling: 'touch',
+        }}
+      >
         {reader.sectionStatus === 'loading' && (
           <Typography sx={{ px: 2.5, pt: 2, color: theme.muted }}>Abrindo trecho…</Typography>
         )}
