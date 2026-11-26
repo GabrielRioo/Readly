@@ -68,15 +68,13 @@ export function BookCover({
           alt=""
           sx={{
             position: 'absolute',
-            inset: '-1px',
-            width: 'calc(100% + 2px)',
-            height: 'calc(100% + 2px)',
-            objectFit: 'cover',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'contain',
             objectPosition: 'center',
             display: 'block',
             border: 0,
-            transform: 'scale(1.04)',
-            transformOrigin: 'center',
             filter: kindle ? 'grayscale(1) contrast(1.05)' : 'none',
           }}
         />

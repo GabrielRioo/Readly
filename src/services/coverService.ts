@@ -143,8 +143,11 @@ function trimCanvasWhitespace(source: HTMLCanvasElement): HTMLCanvasElement {
   while (left < width && columnBlankRatio(left, top, bottom) >= BLANK_ROW_RATIO) left += 1
   while (right > left && columnBlankRatio(right, top, bottom) >= BLANK_ROW_RATIO) right -= 1
 
-  // Push further into the artwork to kill residual fringe / anti-alias.
-  const inset = Math.max(3, Math.round(Math.min(width, height) * 0.015))
+  const foundMargins = top > 0 || left > 0 || bottom < height - 1 || right < width - 1
+  if (!foundMargins) return source
+
+  // Only shave 1px of anti-alias after real white margins — never eat cover art.
+  const inset = 1
   top = Math.min(bottom, top + inset)
   left = Math.min(right, left + inset)
   bottom = Math.max(top, bottom - inset)

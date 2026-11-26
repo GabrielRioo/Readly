@@ -4,7 +4,7 @@ import { validateBookFile } from '../utils/fileValidation.ts'
 import { extractBookCover, refineCoverBlob } from './coverService.ts'
 import { db } from './db.ts'
 
-const COVER_TRIM_FLAG = 'readly-cover-trim-v2'
+const COVER_TRIM_FLAG = 'readly-cover-trim-v3'
 
 const emptyLocation: ReadingLocation = { chapterIndex: 0, page: 1, scrollRatio: 0 }
 
