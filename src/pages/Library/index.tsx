@@ -1,4 +1,5 @@
 import AddIcon from '@mui/icons-material/Add'
+import ContrastIcon from '@mui/icons-material/Contrast'
 import {
   Alert,
   Box,
@@ -8,11 +9,13 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  IconButton,
   Typography,
 } from '@mui/material'
 import { useRef, useState } from 'react'
 import { useInstallPrompt } from '../../hooks/useInstallPrompt.ts'
 import { usePreferences } from '../../hooks/usePreferences.ts'
+import { nextReaderTheme, readerThemes } from '../../theme/readerThemes.ts'
 import type { BookSummary } from '../../types/book.ts'
 import { errorMessage } from '../../utils/text.ts'
 import { BookList } from './components/BookList.tsx'
@@ -22,14 +25,14 @@ import { useLibrary } from './hooks/useLibrary.ts'
 
 export function LibraryPage() {
   const library = useLibrary()
-  const { preferences } = usePreferences()
+  const { preferences, update } = usePreferences()
   const install = useInstallPrompt()
   const inputRef = useRef<HTMLInputElement>(null)
   const [pendingDelete, setPendingDelete] = useState<BookSummary | null>(null)
   const [pendingEdit, setPendingEdit] = useState<BookSummary | null>(null)
   const [editSaving, setEditSaving] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
-  const kindle = preferences.theme === 'kindle'
+  const theme = readerThemes[preferences.theme]
 
   function openPicker() {
     inputRef.current?.click()
@@ -63,22 +66,35 @@ export function LibraryPage() {
             fontSize: { xs: '2.35rem', sm: '2.75rem' },
             letterSpacing: '-0.04em',
             lineHeight: 0.95,
-            color: kindle ? 'text.primary' : '#1f4d3a',
+            color: 'primary.main',
           }}
         >
           Readly
         </Typography>
-        {library.status === 'ready' && library.books.length > 0 && (
-          <Button
-            variant="contained"
-            onClick={openPicker}
-            disabled={library.importing}
-            startIcon={<AddIcon />}
-            sx={{ flexShrink: 0, borderRadius: 999, px: 2 }}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
+          <IconButton
+            aria-label={`Tema ${theme.label}. Trocar tema de cor.`}
+            onClick={() => update({ theme: nextReaderTheme(preferences.theme) })}
+            sx={{
+              border: '1px solid',
+              borderColor: 'divider',
+              bgcolor: 'background.paper',
+            }}
           >
-            {library.importing ? 'Importando…' : 'Adicionar'}
-          </Button>
-        )}
+            <ContrastIcon />
+          </IconButton>
+          {library.status === 'ready' && library.books.length > 0 && (
+            <Button
+              variant="contained"
+              onClick={openPicker}
+              disabled={library.importing}
+              startIcon={<AddIcon />}
+              sx={{ borderRadius: 999, px: 2 }}
+            >
+              {library.importing ? 'Importando…' : 'Adicionar'}
+            </Button>
+          )}
+        </Box>
       </Box>
 
       <Typography color="text.secondary" sx={{ mb: 3, maxWidth: 420, lineHeight: 1.55 }}>
