@@ -47,12 +47,12 @@ export const readerThemes: Record<ReaderThemeId, ReaderTheme> = {
   kindle: {
     id: 'kindle',
     label: 'Kindle',
-    background: '#f2f2ee',
-    text: '#111111',
-    muted: '#6b6b6b',
-    accent: '#222222',
-    sheet: '#ffffff',
-    selection: 'rgba(0, 0, 0, 0.18)',
+    background: '#f3f1ea',
+    text: '#1a1a1a',
+    muted: '#5a5a5a',
+    accent: '#1a1a1a',
+    sheet: '#ebe8e0',
+    selection: 'rgba(0, 0, 0, 0.16)',
   },
 }
 

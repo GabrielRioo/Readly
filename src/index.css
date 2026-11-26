@@ -35,16 +35,26 @@ html[data-app-theme="black"] body {
 }
 
 html[data-app-theme="kindle"] body {
-  background:
-    radial-gradient(1000px 480px at 10% -8%, rgba(0, 0, 0, 0.06), transparent 55%),
-    linear-gradient(180deg, #f0f0ec 0%, #e8e8e4 45%, #e2e2de 100%);
+  color-scheme: light;
+  background: #ebe8e0;
+  color: #1a1a1a;
 }
 
 html[data-app-theme="kindle"] .library-surface img,
 html[data-app-theme="kindle"] .reader-vocab-mark,
 html[data-app-theme="kindle"] .reader-bookmark-mark,
 html[data-app-theme="kindle"] .reader-lookup-mark {
-  filter: grayscale(1);
+  filter: grayscale(1) contrast(1.06);
+}
+
+html[data-app-theme="kindle"] .app-shell .MuiBottomNavigation-root {
+  background: #f3f1ea !important;
+  border-top: 1px solid #c9c5bb !important;
+  backdrop-filter: none;
+}
+
+html[data-app-theme="kindle"] .MuiOutlinedInput-root {
+  background: #f3f1ea;
 }
 
 .library-surface {

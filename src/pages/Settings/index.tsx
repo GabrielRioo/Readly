@@ -43,7 +43,7 @@ export function SettingsPage() {
               control={<Radio />}
               label={
                 themeId === 'kindle'
-                  ? `${readerThemes[themeId].label} (preto e branco)`
+                  ? `${readerThemes[themeId].label} (e-ink / papel)`
                   : readerThemes[themeId].label
               }
             />
@@ -51,7 +51,7 @@ export function SettingsPage() {
         </RadioGroup>
         {preferences.theme === 'kindle' && (
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            Estante, leitura e destaques ficam sem cor, no estilo e-ink.
+            Fundo claro de papel, texto preto e capas em cinza — como um Kindle.
           </Typography>
         )}
       </Box>

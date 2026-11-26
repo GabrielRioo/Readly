@@ -3,6 +3,7 @@ import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined'
 import TranslateOutlinedIcon from '@mui/icons-material/TranslateOutlined'
 import { BottomNavigation, BottomNavigationAction, Box } from '@mui/material'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { usePreferences } from '../hooks/usePreferences.ts'
 
 const tabs = [
   { label: 'Tela Inicial', value: '/', icon: <MenuBookOutlinedIcon /> },
@@ -13,7 +14,9 @@ const tabs = [
 export function AppShell() {
   const location = useLocation()
   const navigate = useNavigate()
+  const { preferences } = usePreferences()
   const current = tabs.some((tab) => tab.value === location.pathname) ? location.pathname : '/'
+  const kindle = preferences.theme === 'kindle'
 
   return (
     <Box sx={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }} className="app-shell">
@@ -27,9 +30,11 @@ export function AppShell() {
         sx={{
           position: 'sticky',
           bottom: 0,
-          borderTop: '1px solid rgba(26, 31, 28, 0.08)',
-          background: 'rgba(247, 248, 246, 0.92)',
-          backdropFilter: 'blur(10px)',
+          borderTop: '1px solid',
+          borderColor: 'divider',
+          bgcolor: kindle ? '#f3f1ea' : 'background.paper',
+          backgroundImage: 'none',
+          backdropFilter: kindle ? 'none' : 'blur(10px)',
           pb: 'env(safe-area-inset-bottom)',
           height: 'calc(56px + env(safe-area-inset-bottom))',
         }}
