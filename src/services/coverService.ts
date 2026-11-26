@@ -1,7 +1,8 @@
 import type { BookFormat } from '../types/book.ts'
 
 const MAX_COVER_EDGE = 512
-const WHITE_THRESHOLD = 248
+const WHITE_THRESHOLD = 242
+const BLANK_ROW_RATIO = 0.992
 
 export async function extractBookCover(data: ArrayBuffer, format: BookFormat): Promise<Blob | null> {
   if (format === 'txt') return null
@@ -44,13 +45,16 @@ async function extractPdfCover(data: ArrayBuffer): Promise<Blob | null> {
   try {
     const page = await pdf.getPage(1)
     const base = page.getViewport({ scale: 1 })
-    const scale = Math.min(2.4, (MAX_COVER_EDGE * 1.4) / Math.max(base.width, base.height))
+    const scale = Math.min(2.6, (MAX_COVER_EDGE * 1.5) / Math.max(base.width, base.height))
     const viewport = page.getViewport({ scale: Math.max(scale, 1) })
     const canvas = document.createElement('canvas')
     canvas.width = Math.ceil(viewport.width)
     canvas.height = Math.ceil(viewport.height)
     const context = canvas.getContext('2d', { willReadFrequently: true })
     if (!context) return null
+    // Fill black first so any unpainted edge is never white.
+    context.fillStyle = '#000'
+    context.fillRect(0, 0, canvas.width, canvas.height)
     await page.render({ canvas, canvasContext: context, viewport }).promise
     const trimmed = trimCanvasWhitespace(canvas)
     return normalizeCanvas(trimmed)
@@ -99,14 +103,34 @@ function trimCanvasWhitespace(source: HTMLCanvasElement): HTMLCanvasElement {
   if (width < 8 || height < 8) return source
 
   const { data } = context.getImageData(0, 0, width, height)
-  const isBlank = (x: number, y: number) => {
+  const isBlankPixel = (x: number, y: number) => {
     const index = (y * width + x) * 4
     const alpha = data[index + 3] ?? 0
     if (alpha < 12) return true
     const red = data[index] ?? 0
     const green = data[index + 1] ?? 0
     const blue = data[index + 2] ?? 0
-    return red >= WHITE_THRESHOLD && green >= WHITE_THRESHOLD && blue >= WHITE_THRESHOLD
+    // Near-white and very light gray page paper.
+    const luma = 0.299 * red + 0.587 * green + 0.114 * blue
+    return luma >= WHITE_THRESHOLD && Math.max(red, green, blue) - Math.min(red, green, blue) < 18
+  }
+
+  const rowBlankRatio = (y: number) => {
+    let blank = 0
+    for (let x = 0; x < width; x += 1) {
+      if (isBlankPixel(x, y)) blank += 1
+    }
+    return blank / width
+  }
+
+  const columnBlankRatio = (x: number, top: number, bottom: number) => {
+    let blank = 0
+    const span = bottom - top + 1
+    if (span <= 0) return 1
+    for (let y = top; y <= bottom; y += 1) {
+      if (isBlankPixel(x, y)) blank += 1
+    }
+    return blank / span
   }
 
   let top = 0
@@ -114,43 +138,22 @@ function trimCanvasWhitespace(source: HTMLCanvasElement): HTMLCanvasElement {
   let left = 0
   let right = width - 1
 
-  topLoop: for (; top < height; top += 1) {
-    for (let x = 0; x < width; x += 1) {
-      if (!isBlank(x, top)) break topLoop
-    }
-  }
+  while (top < height && rowBlankRatio(top) >= BLANK_ROW_RATIO) top += 1
+  while (bottom > top && rowBlankRatio(bottom) >= BLANK_ROW_RATIO) bottom -= 1
+  while (left < width && columnBlankRatio(left, top, bottom) >= BLANK_ROW_RATIO) left += 1
+  while (right > left && columnBlankRatio(right, top, bottom) >= BLANK_ROW_RATIO) right -= 1
 
-  bottomLoop: for (; bottom >= top; bottom -= 1) {
-    for (let x = 0; x < width; x += 1) {
-      if (!isBlank(x, bottom)) break bottomLoop
-    }
-  }
-
-  leftLoop: for (; left < width; left += 1) {
-    for (let y = top; y <= bottom; y += 1) {
-      if (!isBlank(left, y)) break leftLoop
-    }
-  }
-
-  rightLoop: for (; right >= left; right -= 1) {
-    for (let y = top; y <= bottom; y += 1) {
-      if (!isBlank(right, y)) break rightLoop
-    }
-  }
-
-  const pad = 1
-  top = Math.max(0, top - pad)
-  left = Math.max(0, left - pad)
-  bottom = Math.min(height - 1, bottom + pad)
-  right = Math.min(width - 1, right + pad)
+  // Push further into the artwork to kill residual fringe / anti-alias.
+  const inset = Math.max(3, Math.round(Math.min(width, height) * 0.015))
+  top = Math.min(bottom, top + inset)
+  left = Math.min(right, left + inset)
+  bottom = Math.max(top, bottom - inset)
+  right = Math.max(left, right - inset)
 
   const cropWidth = right - left + 1
   const cropHeight = bottom - top + 1
   if (cropWidth < 8 || cropHeight < 8) return source
-
-  // Avoid aggressive crop when almost everything is "blank".
-  if (cropWidth * cropHeight < width * height * 0.2) return source
-  if (cropWidth === width && cropHeight === height) return source
+  if (cropWidth * cropHeight < width * height * 0.18) return source
 
   const cropped = document.createElement('canvas')
   cropped.width = cropWidth
@@ -164,7 +167,7 @@ function trimCanvasWhitespace(source: HTMLCanvasElement): HTMLCanvasElement {
 async function normalizeCanvas(source: HTMLCanvasElement): Promise<Blob | null> {
   const longest = Math.max(source.width, source.height)
   if (longest <= MAX_COVER_EDGE) {
-    return canvasToBlob(source, 'image/jpeg', 0.86)
+    return canvasToBlob(source, 'image/jpeg', 0.9)
   }
 
   const scale = MAX_COVER_EDGE / longest
@@ -174,9 +177,9 @@ async function normalizeCanvas(source: HTMLCanvasElement): Promise<Blob | null> 
   canvas.width = width
   canvas.height = height
   const context = canvas.getContext('2d')
-  if (!context) return canvasToBlob(source, 'image/jpeg', 0.86)
+  if (!context) return canvasToBlob(source, 'image/jpeg', 0.9)
   context.drawImage(source, 0, 0, width, height)
-  return canvasToBlob(canvas, 'image/jpeg', 0.86)
+  return canvasToBlob(canvas, 'image/jpeg', 0.9)
 }
 
 function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: number): Promise<Blob | null> {

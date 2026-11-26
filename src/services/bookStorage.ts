@@ -4,7 +4,7 @@ import { validateBookFile } from '../utils/fileValidation.ts'
 import { extractBookCover, refineCoverBlob } from './coverService.ts'
 import { db } from './db.ts'
 
-const COVER_TRIM_FLAG = 'readly-cover-trim-v1'
+const COVER_TRIM_FLAG = 'readly-cover-trim-v2'
 
 const emptyLocation: ReadingLocation = { chapterIndex: 0, page: 1, scrollRatio: 0 }
 
@@ -31,7 +31,9 @@ export async function backfillMissingCovers(
     if (!shouldTrimStored) continue
 
     try {
-      const coverBlob = await refineCoverBlob(book.coverBlob)
+      // Prefer re-extracting from the original file so PDF page margins are removed cleanly.
+      const fromFile = await extractBookCover(await book.blob.arrayBuffer(), book.format)
+      const coverBlob = fromFile ?? (await refineCoverBlob(book.coverBlob))
       await db.books.update(book.id, { coverBlob })
       onCover(toSummary({ ...book, coverBlob }))
     } catch {

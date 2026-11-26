@@ -53,10 +53,11 @@ export function BookCover({
         aspectRatio: '2 / 3',
         borderRadius: '6px',
         overflow: 'hidden',
-        background: `linear-gradient(160deg, ${tone.from}, ${tone.to})`,
+        background: url ? '#000' : `linear-gradient(160deg, ${tone.from}, ${tone.to})`,
         boxShadow: '0 12px 28px rgba(0, 0, 0, 0.28)',
-        border: 'none',
-        outline: 'none',
+        border: 0,
+        outline: 0,
+        isolation: 'isolate',
       }}
     >
       {url ? (
@@ -66,13 +67,16 @@ export function BookCover({
           alt=""
           sx={{
             position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
+            inset: '-1px',
+            width: 'calc(100% + 2px)',
+            height: 'calc(100% + 2px)',
             objectFit: 'cover',
             objectPosition: 'center',
             display: 'block',
-            border: 'none',
+            border: 0,
+            // Bleed past rounded edges to avoid 1px light fringe.
+            transform: 'scale(1.04)',
+            transformOrigin: 'center',
           }}
         />
       ) : (
