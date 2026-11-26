@@ -24,6 +24,7 @@ export interface BookRecord {
   progress: number
   location: ReadingLocation
   bookmark?: ReadingBookmark | null
+  coverBlob?: Blob | null
   blob: Blob
 }
 
@@ -35,6 +36,7 @@ export interface BookSummary {
   size: number
   addedAt: number
   progress: number
+  coverBlob?: Blob | null
 }
 
 export interface ReaderSection {

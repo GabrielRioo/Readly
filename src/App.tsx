@@ -1,22 +1,21 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
-import { Box, CircularProgress, CssBaseline, ThemeProvider } from '@mui/material'
+import { Box, CircularProgress } from '@mui/material'
 import { AppErrorBoundary } from './components/AppErrorBoundary.tsx'
 import { AppShell } from './components/AppShell.tsx'
+import { AppThemeProvider } from './components/AppThemeProvider.tsx'
 import { PreferencesProvider } from './components/PreferencesProvider.tsx'
 import { LibraryPage } from './pages/Library/index.tsx'
 import { SettingsPage } from './pages/Settings/index.tsx'
 import { VocabularyPage } from './pages/Vocabulary/index.tsx'
-import { appTheme } from './theme/appTheme.ts'
 
 const ReaderPage = lazy(() => import('./pages/Reader/index.tsx').then((module) => ({ default: module.ReaderPage })))
 
 export function App() {
   return (
-    <ThemeProvider theme={appTheme}>
-      <CssBaseline />
-      <AppErrorBoundary>
-        <PreferencesProvider>
+    <AppErrorBoundary>
+      <PreferencesProvider>
+        <AppThemeProvider>
           <BrowserRouter>
             <Routes>
               <Route element={<AppShell />}>
@@ -40,8 +39,8 @@ export function App() {
               />
             </Routes>
           </BrowserRouter>
-        </PreferencesProvider>
-      </AppErrorBoundary>
-    </ThemeProvider>
+        </AppThemeProvider>
+      </PreferencesProvider>
+    </AppErrorBoundary>
   )
 }

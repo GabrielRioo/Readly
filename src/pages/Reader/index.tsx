@@ -1,15 +1,26 @@
 import { Alert, Box, Button, CircularProgress, Typography } from '@mui/material'
-import { useCallback, useRef } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useCallback, useEffect, useRef } from 'react'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { usePreferences } from '../../hooks/usePreferences.ts'
 import { useSpeech } from '../../hooks/useSpeech.ts'
-import { saveVocabularyEntry } from '../../services/vocabularyStorage.ts'
+import {
+  deleteVocabularyEntry,
+  findVocabularyEntry,
+  getVocabularyEntry,
+  saveVocabularyEntry,
+} from '../../services/vocabularyStorage.ts'
 import { nextReaderTheme, readerThemes } from '../../theme/readerThemes.ts'
+import type { ReaderNavigationState } from '../../types/readerNavigation.ts'
+import type { VocabularyRecord } from '../../types/vocabulary.ts'
+import { hasVocabularyLocation } from '../../types/vocabulary.ts'
 import {
   clearLookupHighlight,
+  getLookupMarkLocation,
   highlightSelectionIn,
   promoteLookupToBookmark,
   scrollToBookmarkMark,
+  scrollToVocabularyMark,
+  vocabularyIdFromTarget,
 } from '../../utils/readerDom.ts'
 import { formatPercent } from '../../utils/text.ts'
 import { AudioBar } from './components/AudioBar.tsx'
@@ -19,12 +30,14 @@ import { ReaderToolbar } from './components/ReaderToolbar.tsx'
 import { TranslationSheet } from './components/TranslationSheet.tsx'
 import { useReaderDocument } from './hooks/useReaderDocument.ts'
 import { useReadingScroll } from './hooks/useReadingScroll.ts'
+import { useSectionVocabulary } from './hooks/useSectionVocabulary.ts'
 import { useTextGestures } from './hooks/useTextGestures.ts'
 import { useTextLookup } from './hooks/useTextLookup.ts'
 
 export function ReaderPage() {
   const { bookId } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const { preferences, update } = usePreferences()
   const reader = useReaderDocument(bookId)
   const lookup = useTextLookup()
@@ -33,7 +46,13 @@ export function ReaderPage() {
   const bodyRef = useRef<HTMLDivElement | null>(null)
   const clearLookupRef = useRef(lookup.clear)
   clearLookupRef.current = lookup.clear
+  const pendingFocusRef = useRef<ReaderNavigationState['focusVocabulary'] | null>(
+    (location.state as ReaderNavigationState | null)?.focusVocabulary ?? null,
+  )
+  const focusHandledRef = useRef(false)
+  const ignoreSelectionRef = useRef(false)
   const sectionKey = reader.section ? `${reader.book?.id ?? ''}:${reader.section.index}` : ''
+  const vocabulary = useSectionVocabulary(reader.book?.id, reader.section?.index)
   const scrollerRef = useReadingScroll(sectionKey, () => reader.ratioRef.current, (ratio) => {
     void reader.persistRatio(ratio)
   })
@@ -43,19 +62,120 @@ export function ReaderPage() {
     clearLookupRef.current()
   }, [])
 
+  useEffect(() => {
+    if (!(location.state as ReaderNavigationState | null)?.focusVocabulary) return
+    navigate(location.pathname, { replace: true, state: null })
+  }, [location.pathname, location.state, navigate])
+
   useTextGestures(scrollerRef, reader.status === 'ready', {
     onSelection: (text) => {
+      if (ignoreSelectionRef.current) {
+        ignoreSelectionRef.current = false
+        return
+      }
       const body = bodyRef.current
+      const book = reader.book
       if (body) highlightSelectionIn(body)
-      lookup.lookup(text)
+      if (!book) {
+        lookup.lookup(text)
+        return
+      }
+      void findVocabularyEntry(book.id, text).then((entry) => {
+        if (entry) lookup.lookup(text, { saved: true, entryId: entry.id })
+        else lookup.lookup(text)
+      })
     },
   })
+
+  useEffect(() => {
+    const scroller = scrollerRef.current
+    if (!scroller || reader.status !== 'ready') return
+
+    const openEntry = (entryId: string) => {
+      ignoreSelectionRef.current = true
+      window.getSelection()?.removeAllRanges()
+      clearLookupHighlight(bodyRef.current)
+      const entry = vocabulary.entries.find((item) => item.id === entryId)
+      if (entry) {
+        lookup.openSaved(entry)
+        return
+      }
+      void getVocabularyEntry(entryId).then((found) => {
+        if (found) lookup.openSaved(found)
+      })
+    }
+
+    const onPointerDown = (event: PointerEvent) => {
+      if (vocabularyIdFromTarget(event.target)) ignoreSelectionRef.current = true
+    }
+
+    const onClick = (event: MouseEvent) => {
+      const entryId = vocabularyIdFromTarget(event.target)
+      if (!entryId) return
+      event.preventDefault()
+      openEntry(entryId)
+    }
+
+    scroller.addEventListener('pointerdown', onPointerDown)
+    scroller.addEventListener('click', onClick)
+    return () => {
+      scroller.removeEventListener('pointerdown', onPointerDown)
+      scroller.removeEventListener('click', onClick)
+    }
+  }, [lookup, reader.status, scrollerRef, vocabulary.entries])
+
+  useEffect(() => {
+    const focus = pendingFocusRef.current
+    if (!focus || !reader.book || !reader.section || reader.sectionStatus !== 'ready') return
+    if (focusHandledRef.current) return
+
+    if (reader.section.index !== focus.sectionIndex) {
+      void reader.goTo(focus.sectionIndex)
+      return
+    }
+
+    if (vocabulary.status !== 'ready') return
+
+    focusHandledRef.current = true
+    pendingFocusRef.current = null
+
+    let cancelled = false
+    const timer = window.setTimeout(() => {
+      void getVocabularyEntry(focus.entryId).then((entry) => {
+        if (cancelled || !entry) return
+        const scroller = scrollerRef.current
+        const body = bodyRef.current
+        if (scroller && body) scrollToVocabularyMark(scroller, body, entry.id)
+        lookup.openSaved(entry)
+        if (scroller) {
+          const max = scroller.scrollHeight - scroller.clientHeight
+          const ratio = max <= 0 ? 1 : scroller.scrollTop / max
+          void reader.persistRatio(ratio)
+        }
+      })
+    }, 40)
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [
+    lookup,
+    reader,
+    reader.book,
+    reader.section,
+    reader.sectionStatus,
+    scrollerRef,
+    vocabulary.entries,
+    vocabulary.status,
+  ])
 
   const themeStyle = {
     background: theme.background,
     color: theme.text,
     '--reader-selection': theme.selection,
     '--reader-bookmark': theme.accent,
+    '--reader-vocab': theme.accent,
   }
 
   if (reader.status === 'loading') {
@@ -95,6 +215,8 @@ export function ReaderPage() {
       sectionBookmark.quote === lookup.request.text &&
       sectionBookmark.length > 0,
   )
+  const focusVocabularyId =
+    lookup.request?.origin === 'vocabulary' ? lookup.entryId : pendingFocusRef.current?.entryId
 
   function toggleChapterAudio() {
     if (speech.status === 'playing') speech.pause()
@@ -126,6 +248,55 @@ export function ReaderPage() {
       const max = scroller.scrollHeight - scroller.clientHeight
       const ratio = max <= 0 ? 1 : scroller.scrollTop / max
       void reader.persistRatio(ratio)
+    }
+  }
+
+  async function toggleSave() {
+    if (!lookup.request || !lookup.translation) return
+
+    if (lookup.saved) {
+      const id = lookup.entryId ?? (await findVocabularyEntry(book.id, lookup.request.text))?.id
+      if (!id) {
+        lookup.markUnsaved()
+        return
+      }
+      await deleteVocabularyEntry(id)
+      vocabulary.removeLocal(id)
+      lookup.markUnsaved()
+      if (lookup.request.origin === 'vocabulary') closeLookup()
+      return
+    }
+
+    const body = bodyRef.current
+    const fromMark = body ? getLookupMarkLocation(body) : null
+    const existing = vocabulary.entries.find((entry) => entry.id === lookup.entryId)
+    const location = fromMark
+      ? {
+          sectionIndex: section.index,
+          startOffset: fromMark.startOffset,
+          length: fromMark.length,
+        }
+      : existing && hasVocabularyLocation(existing)
+        ? {
+            sectionIndex: existing.sectionIndex,
+            startOffset: existing.startOffset,
+            length: existing.length,
+          }
+        : undefined
+
+    try {
+      const saved: VocabularyRecord = await saveVocabularyEntry({
+        source: lookup.request.text,
+        translation: lookup.translation,
+        bookId: book.id,
+        bookTitle: book.title,
+        location,
+      })
+      clearLookupHighlight(body)
+      vocabulary.upsertLocal(saved)
+      lookup.markSaved(saved.id)
+    } catch {
+      // ignore save failures for personal offline use
     }
   }
 
@@ -169,6 +340,8 @@ export function ReaderPage() {
           fontSize={preferences.fontSize}
           lineHeight={preferences.lineHeight}
           bookmark={sectionBookmark}
+          vocabulary={vocabulary.entries}
+          focusVocabularyId={focusVocabularyId}
         />
       </Box>
       {speech.error && (
@@ -201,17 +374,7 @@ export function ReaderPage() {
           onClose={closeLookup}
           onBookmark={toggleBookmark}
           onSpeak={() => void speech.speak(lookup.request?.text ?? '')}
-          onSave={() => {
-            if (!lookup.request || !lookup.translation) return
-            void saveVocabularyEntry({
-              source: lookup.request.text,
-              translation: lookup.translation,
-              bookId: book.id,
-              bookTitle: book.title,
-            })
-              .then(() => lookup.markSaved())
-              .catch(() => undefined)
-          }}
+          onSave={() => void toggleSave()}
         />
       )}
       <ReaderFooter

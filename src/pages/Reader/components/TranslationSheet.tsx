@@ -38,7 +38,12 @@ export function TranslationSheet({
       const target = event.target
       if (!(target instanceof Node)) return
       if (sheetRef.current?.contains(target)) return
-      if (target instanceof Element && target.closest('.reader-lookup-mark, .reader-bookmark-mark')) return
+      if (
+        target instanceof Element &&
+        target.closest('.reader-lookup-mark, .reader-bookmark-mark, .reader-vocab-mark')
+      ) {
+        return
+      }
       onClose()
     }
 
@@ -105,8 +110,8 @@ export function TranslationSheet({
         >
           {bookmarked ? 'Marcado' : 'Marcar'}
         </Button>
-        <Button variant="contained" disabled={status !== 'ready' || saved} onClick={onSave}>
-          {saved ? 'Salvo' : 'Salvar'}
+        <Button variant="contained" disabled={status !== 'ready'} onClick={onSave}>
+          {saved ? 'Remover' : 'Salvar'}
         </Button>
       </Box>
     </Box>

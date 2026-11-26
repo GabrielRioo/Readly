@@ -1,5 +1,19 @@
 const LOOKUP_ATTR = 'data-reader-lookup'
 const BOOKMARK_ATTR = 'data-reader-bookmark'
+const VOCAB_ATTR = 'data-reader-vocab'
+const VOCAB_ID_ATTR = 'data-vocab-id'
+
+export interface TextSpanLocation {
+  startOffset: number
+  length: number
+  quote: string
+}
+
+export interface VocabularyMarkInput {
+  id: string
+  startOffset: number
+  length: number
+}
 
 export function highlightSelectionIn(root: HTMLElement): boolean {
   clearLookupHighlight(root)
@@ -34,19 +48,23 @@ export function clearBookmarkMark(root: HTMLElement | null): void {
   unwrapMarks(root, `mark[${BOOKMARK_ATTR}]`)
 }
 
-export function promoteLookupToBookmark(
-  root: HTMLElement,
-): { startOffset: number; length: number; quote: string } | null {
+export function clearVocabularyMarks(root: HTMLElement | null): void {
+  if (!root) return
+  unwrapMarks(root, `mark[${VOCAB_ATTR}]`)
+}
+
+export function getLookupMarkLocation(root: HTMLElement): TextSpanLocation | null {
+  const mark = root.querySelector<HTMLElement>(`mark[${LOOKUP_ATTR}]`)
+  if (!mark) return null
+  return locationFromMark(root, mark)
+}
+
+export function promoteLookupToBookmark(root: HTMLElement): TextSpanLocation | null {
   const mark = root.querySelector<HTMLElement>(`mark[${LOOKUP_ATTR}]`)
   if (!mark) return null
 
-  const quote = (mark.textContent ?? '').replace(/\s+/g, ' ').trim()
-  if (!quote) return null
-
-  const startOffset = textOffsetOf(root, mark)
-  if (startOffset < 0) return null
-  const length = mark.textContent?.length ?? 0
-  if (length <= 0) return null
+  const location = locationFromMark(root, mark)
+  if (!location) return null
 
   clearBookmarkMark(root)
 
@@ -55,7 +73,7 @@ export function promoteLookupToBookmark(
   mark.className = 'reader-bookmark-mark'
   mark.setAttribute(BOOKMARK_ATTR, '1')
 
-  return { startOffset, length, quote }
+  return location
 }
 
 export function applyBookmarkByOffset(
@@ -83,12 +101,71 @@ export function applyBookmarkByOffset(
   return true
 }
 
+export function applyVocabularyMarks(root: HTMLElement, marks: VocabularyMarkInput[]): void {
+  clearVocabularyMarks(root)
+  const ordered = [...marks]
+    .filter((mark) => mark.length > 0 && mark.startOffset >= 0)
+    .sort((a, b) => b.startOffset - a.startOffset)
+
+  for (const item of ordered) {
+    const range = rangeFromOffsets(root, item.startOffset, item.startOffset + item.length)
+    if (!range) continue
+
+    const mark = document.createElement('mark')
+    mark.className = 'reader-vocab-mark'
+    mark.setAttribute(VOCAB_ATTR, '1')
+    mark.setAttribute(VOCAB_ID_ATTR, item.id)
+    mark.title = 'Palavra salva no vocabulário'
+
+    try {
+      range.surroundContents(mark)
+    } catch {
+      mark.appendChild(range.extractContents())
+      range.insertNode(mark)
+    }
+  }
+}
+
 export function scrollToBookmarkMark(scroller: HTMLElement, root: HTMLElement): void {
   const mark = root.querySelector<HTMLElement>(`mark[${BOOKMARK_ATTR}]`)
   if (!mark) return
+  scrollMarkIntoView(scroller, mark)
+}
+
+export function scrollToVocabularyMark(
+  scroller: HTMLElement,
+  root: HTMLElement,
+  entryId?: string,
+): boolean {
+  const mark = entryId
+    ? root.querySelector<HTMLElement>(`mark[${VOCAB_ID_ATTR}="${CSS.escape(entryId)}"]`)
+    : root.querySelector<HTMLElement>(`mark[${VOCAB_ATTR}]`)
+  if (!mark) return false
+  scrollMarkIntoView(scroller, mark)
+  return true
+}
+
+export function vocabularyIdFromTarget(target: EventTarget | null): string | null {
+  if (!(target instanceof Element)) return null
+  const mark = target.closest(`mark[${VOCAB_ATTR}]`)
+  if (!(mark instanceof HTMLElement)) return null
+  return mark.getAttribute(VOCAB_ID_ATTR)
+}
+
+function scrollMarkIntoView(scroller: HTMLElement, mark: HTMLElement): void {
   const scrollerTop = scroller.getBoundingClientRect().top
   const markTop = mark.getBoundingClientRect().top
   scroller.scrollTop += markTop - scrollerTop - 24
+}
+
+function locationFromMark(root: HTMLElement, mark: HTMLElement): TextSpanLocation | null {
+  const quote = (mark.textContent ?? '').replace(/\s+/g, ' ').trim()
+  if (!quote) return null
+  const startOffset = textOffsetOf(root, mark)
+  if (startOffset < 0) return null
+  const length = mark.textContent?.length ?? 0
+  if (length <= 0) return null
+  return { startOffset, length, quote }
 }
 
 function unwrapMarks(root: HTMLElement, selector: string): void {

@@ -5,7 +5,7 @@ import { BottomNavigation, BottomNavigationAction, Box } from '@mui/material'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 
 const tabs = [
-  { label: 'Biblioteca', value: '/', icon: <MenuBookOutlinedIcon /> },
+  { label: 'Início', value: '/', icon: <MenuBookOutlinedIcon /> },
   { label: 'Vocabulário', value: '/vocabulary', icon: <TranslateOutlinedIcon /> },
   { label: 'Ajustes', value: '/settings', icon: <SettingsOutlinedIcon /> },
 ]
@@ -16,8 +16,8 @@ export function AppShell() {
   const current = tabs.some((tab) => tab.value === location.pathname) ? location.pathname : '/'
 
   return (
-    <Box sx={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
-      <Box component="main" sx={{ flex: 1, width: '100%', maxWidth: 860, mx: 'auto' }}>
+    <Box sx={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }} className="app-shell">
+      <Box component="main" sx={{ flex: 1, width: '100%', maxWidth: 920, mx: 'auto' }}>
         <Outlet />
       </Box>
       <BottomNavigation
@@ -28,6 +28,8 @@ export function AppShell() {
           position: 'sticky',
           bottom: 0,
           borderTop: '1px solid rgba(26, 31, 28, 0.08)',
+          background: 'rgba(247, 248, 246, 0.92)',
+          backdropFilter: 'blur(10px)',
           pb: 'env(safe-area-inset-bottom)',
           height: 'calc(56px + env(safe-area-inset-bottom))',
         }}

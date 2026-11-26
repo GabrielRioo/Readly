@@ -14,8 +14,18 @@ export function SettingsPage() {
   return (
     <Box sx={{ px: 2, pt: 'calc(20px + env(safe-area-inset-top))', pb: 4, display: 'grid', gap: 3 }}>
       <Box>
-        <Typography variant="h1">Ajustes</Typography>
-        <Typography color="text.secondary">Leitura e voz ficam salvas neste aparelho.</Typography>
+        <Typography
+          component="h1"
+          sx={{
+            fontFamily: '"Literata Variable", Palatino, serif',
+            fontWeight: 650,
+            fontSize: '2rem',
+            letterSpacing: '-0.03em',
+          }}
+        >
+          Ajustes
+        </Typography>
+        <Typography color="text.secondary">Leitura e voz do Readly ficam salvas neste aparelho.</Typography>
       </Box>
 
       <Box>
@@ -27,9 +37,23 @@ export function SettingsPage() {
           onChange={(event) => update({ theme: event.target.value as ReaderThemeId })}
         >
           {readerThemeIds.map((themeId) => (
-            <FormControlLabel key={themeId} value={themeId} control={<Radio />} label={readerThemes[themeId].label} />
+            <FormControlLabel
+              key={themeId}
+              value={themeId}
+              control={<Radio />}
+              label={
+                themeId === 'kindle'
+                  ? `${readerThemes[themeId].label} (preto e branco)`
+                  : readerThemes[themeId].label
+              }
+            />
           ))}
         </RadioGroup>
+        {preferences.theme === 'kindle' && (
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            Estante, leitura e destaques ficam sem cor, no estilo e-ink.
+          </Typography>
+        )}
       </Box>
 
       <Box>

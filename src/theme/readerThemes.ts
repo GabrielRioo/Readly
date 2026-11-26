@@ -1,4 +1,4 @@
-export const readerThemeIds = ['default', 'sepia', 'black'] as const
+export const readerThemeIds = ['default', 'sepia', 'black', 'kindle'] as const
 
 export type ReaderThemeId = (typeof readerThemeIds)[number]
 
@@ -44,10 +44,22 @@ export const readerThemes: Record<ReaderThemeId, ReaderTheme> = {
     sheet: '#1c2128',
     selection: 'rgba(215, 176, 122, 0.35)',
   },
+  kindle: {
+    id: 'kindle',
+    label: 'Kindle',
+    background: '#f2f2ee',
+    text: '#111111',
+    muted: '#6b6b6b',
+    accent: '#222222',
+    sheet: '#ffffff',
+    selection: 'rgba(0, 0, 0, 0.18)',
+  },
 }
 
 export function isReaderThemeId(value: unknown): value is ReaderThemeId {
-  return value === 'default' || value === 'sepia' || value === 'black'
+  return (
+    value === 'default' || value === 'sepia' || value === 'black' || value === 'kindle'
+  )
 }
 
 export function nextReaderTheme(current: ReaderThemeId): ReaderThemeId {

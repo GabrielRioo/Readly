@@ -17,6 +17,12 @@ class ReaderDatabase extends Dexie {
       vocabulary: 'id, createdAt, source',
       translations: 'key',
     })
+    this.version(2).stores({
+      books: 'id, addedAt, title',
+      preferences: 'id',
+      vocabulary: 'id, createdAt, source, bookId',
+      translations: 'key',
+    })
   }
 }
 

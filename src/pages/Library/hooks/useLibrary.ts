@@ -1,5 +1,11 @@
 import { useEffect, useState } from 'react'
-import { addBook, deleteBook, listBooks } from '../../../services/bookStorage.ts'
+import {
+  addBook,
+  backfillMissingCovers,
+  deleteBook,
+  listBooks,
+  updateBookDetails,
+} from '../../../services/bookStorage.ts'
 import type { BookSummary } from '../../../types/book.ts'
 import { errorMessage } from '../../../utils/text.ts'
 
@@ -27,6 +33,18 @@ export function useLibrary() {
       active = false
     }
   }, [])
+
+  useEffect(() => {
+    if (status !== 'ready') return
+    let active = true
+    void backfillMissingCovers((book) => {
+      if (!active) return
+      setBooks((current) => current.map((item) => (item.id === book.id ? book : item)))
+    })
+    return () => {
+      active = false
+    }
+  }, [status])
 
   async function importFiles(files: FileList) {
     setImporting(true)
@@ -71,6 +89,15 @@ export function useLibrary() {
     }
   }
 
+  async function editBook(
+    id: string,
+    patch: { title: string; coverBlob?: Blob | null },
+  ): Promise<void> {
+    setError(null)
+    const updated = await updateBookDetails(id, patch)
+    setBooks((current) => current.map((book) => (book.id === id ? updated : book)))
+  }
+
   return {
     books,
     status,
@@ -79,6 +106,7 @@ export function useLibrary() {
     importing,
     importFiles,
     removeBook,
+    editBook,
     dismissNotice: () => setNotice(null),
   }
 }

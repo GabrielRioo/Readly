@@ -1,28 +1,104 @@
-import { Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Typography } from '@mui/material'
+import AddIcon from '@mui/icons-material/Add'
+import {
+  Alert,
+  Box,
+  Button,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Typography,
+} from '@mui/material'
 import { useRef, useState } from 'react'
 import { useInstallPrompt } from '../../hooks/useInstallPrompt.ts'
+import { usePreferences } from '../../hooks/usePreferences.ts'
+import type { BookSummary } from '../../types/book.ts'
+import { errorMessage } from '../../utils/text.ts'
 import { BookList } from './components/BookList.tsx'
+import { EditBookDialog } from './components/EditBookDialog.tsx'
 import { EmptyLibrary } from './components/EmptyLibrary.tsx'
 import { useLibrary } from './hooks/useLibrary.ts'
-import type { BookSummary } from '../../types/book.ts'
 
 export function LibraryPage() {
   const library = useLibrary()
+  const { preferences } = usePreferences()
   const install = useInstallPrompt()
   const inputRef = useRef<HTMLInputElement>(null)
   const [pendingDelete, setPendingDelete] = useState<BookSummary | null>(null)
+  const [pendingEdit, setPendingEdit] = useState<BookSummary | null>(null)
+  const [editSaving, setEditSaving] = useState(false)
+  const [editError, setEditError] = useState<string | null>(null)
+  const kindle = preferences.theme === 'kindle'
 
   function openPicker() {
     inputRef.current?.click()
   }
 
   return (
-    <Box sx={{ px: 2, pt: 'calc(20px + env(safe-area-inset-top))', pb: 3 }}>
-      <Typography variant="h1" sx={{ mb: 0.5 }}>
-        Leitor
-      </Typography>
-      <Typography color="text.secondary" sx={{ mb: 2.5 }}>
-        Livros em inglês, com tradução e áudio, neste aparelho.
+    <Box
+      className="library-surface"
+      sx={{
+        px: { xs: 2, sm: 3 },
+        pt: 'calc(28px + env(safe-area-inset-top))',
+        pb: 4,
+        minHeight: '100%',
+      }}
+    >
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'space-between',
+          gap: 2,
+          mb: 1,
+        }}
+      >
+        <Box>
+          <Typography
+            component="p"
+            sx={{
+              m: 0,
+              mb: 0.75,
+              fontSize: '0.72rem',
+              fontWeight: 700,
+              letterSpacing: '0.16em',
+              textTransform: 'uppercase',
+              color: 'text.secondary',
+            }}
+          >
+            Estante
+          </Typography>
+          <Typography
+            component="h1"
+            sx={{
+              m: 0,
+              fontFamily: '"Literata Variable", Palatino, serif',
+              fontWeight: 650,
+              fontSize: { xs: '2.35rem', sm: '2.75rem' },
+              letterSpacing: '-0.04em',
+              lineHeight: 0.95,
+              color: kindle ? 'text.primary' : '#1f4d3a',
+            }}
+          >
+            Readly
+          </Typography>
+        </Box>
+        {library.status === 'ready' && library.books.length > 0 && (
+          <Button
+            variant="contained"
+            onClick={openPicker}
+            disabled={library.importing}
+            startIcon={<AddIcon />}
+            sx={{ flexShrink: 0, borderRadius: 999, px: 2 }}
+          >
+            {library.importing ? 'Importando…' : 'Adicionar'}
+          </Button>
+        )}
+      </Box>
+
+      <Typography color="text.secondary" sx={{ mb: 3, maxWidth: 420, lineHeight: 1.55 }}>
+        Leitura e escuta em inglês, com tradução no toque — tudo neste aparelho.
       </Typography>
 
       <input
@@ -50,7 +126,7 @@ export function LibraryPage() {
       )}
 
       {library.status === 'loading' && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
           <CircularProgress />
         </Box>
       )}
@@ -58,25 +134,58 @@ export function LibraryPage() {
       {library.status === 'ready' && library.books.length === 0 && <EmptyLibrary onAdd={openPicker} />}
 
       {library.status === 'ready' && library.books.length > 0 && (
-        <>
-          <Button variant="contained" onClick={openPicker} disabled={library.importing} sx={{ mb: 2 }}>
-            {library.importing ? 'Importando…' : 'Adicionar livro'}
-          </Button>
-          <BookList books={library.books} onDelete={setPendingDelete} />
-        </>
+        <BookList books={library.books} onEdit={setPendingEdit} onDelete={setPendingDelete} />
       )}
 
       {install.canInstall && (
-        <Button sx={{ mt: 2 }} onClick={() => void install.install()}>
+        <Button
+          sx={{
+            mt: 3,
+            borderRadius: 999,
+            border: '1px solid',
+            borderColor: 'divider',
+            bgcolor: 'rgba(255,255,255,0.45)',
+          }}
+          onClick={() => void install.install()}
+        >
           Instalar neste aparelho
         </Button>
       )}
+
+      <EditBookDialog
+        book={pendingEdit}
+        saving={editSaving}
+        error={editError}
+        onClose={() => {
+          if (editSaving) return
+          setPendingEdit(null)
+          setEditError(null)
+        }}
+        onSave={(input) => {
+          if (!pendingEdit) return
+          setEditSaving(true)
+          setEditError(null)
+          void library
+            .editBook(pendingEdit.id, input)
+            .then(() => {
+              setPendingEdit(null)
+            })
+            .catch((caught: unknown) => {
+              setEditError(errorMessage(caught, 'Não foi possível salvar as alterações.'))
+            })
+            .finally(() => {
+              setEditSaving(false)
+            })
+        }}
+      />
 
       <Dialog open={pendingDelete !== null} onClose={() => setPendingDelete(null)}>
         <DialogTitle>Excluir livro?</DialogTitle>
         <DialogContent>
           <Typography>
-            {pendingDelete ? `“${pendingDelete.title}” sai deste aparelho. O vocabulário salvo permanece.` : ''}
+            {pendingDelete
+              ? `“${pendingDelete.title}” sai deste aparelho. O vocabulário salvo permanece.`
+              : ''}
           </Typography>
         </DialogContent>
         <DialogActions>
