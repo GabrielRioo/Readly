@@ -112,7 +112,7 @@ export function LibraryChrome({
             onClick={onAdd}
             disabled={importing}
             startIcon={<AddIcon />}
-            sx={{ borderRadius: 999, px: 2.75, minWidth: 160 }}
+            sx={{ borderRadius: 1, px: 2.5, minWidth: 148 }}
           >
             {importing ? 'Importando…' : 'Adicionar'}
           </Button>
