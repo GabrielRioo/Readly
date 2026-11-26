@@ -51,10 +51,12 @@ export function BookCover({
         position: 'relative',
         width: '100%',
         aspectRatio: '2 / 3',
-        borderRadius: '4px 10px 10px 4px',
+        borderRadius: '6px',
         overflow: 'hidden',
         background: `linear-gradient(160deg, ${tone.from}, ${tone.to})`,
-        boxShadow: '0 10px 24px rgba(26, 31, 28, 0.18), -2px 0 0 rgba(0,0,0,0.14)',
+        boxShadow: '0 12px 28px rgba(0, 0, 0, 0.28)',
+        border: 'none',
+        outline: 'none',
       }}
     >
       {url ? (
@@ -69,9 +71,8 @@ export function BookCover({
             height: '100%',
             objectFit: 'cover',
             objectPosition: 'center',
-            // Crop white page margins common on PDF cover renders.
-            transform: 'scale(1.08)',
             display: 'block',
+            border: 'none',
           }}
         />
       ) : (

@@ -1,8 +1,10 @@
 import type { BookFormat, BookRecord, BookSummary, ReadingBookmark, ReadingLocation } from '../types/book.ts'
 import { titleFromFileName } from '../utils/text.ts'
 import { validateBookFile } from '../utils/fileValidation.ts'
-import { extractBookCover } from './coverService.ts'
+import { extractBookCover, refineCoverBlob } from './coverService.ts'
 import { db } from './db.ts'
+
+const COVER_TRIM_FLAG = 'readly-cover-trim-v1'
 
 const emptyLocation: ReadingLocation = { chapterIndex: 0, page: 1, scrollRatio: 0 }
 
@@ -15,11 +17,29 @@ export async function backfillMissingCovers(
   onCover: (book: BookSummary) => void,
 ): Promise<void> {
   const books = await db.books.toArray()
+  const shouldTrimStored = !localStorage.getItem(COVER_TRIM_FLAG)
+
   for (const book of books) {
-    if (book.coverBlob || book.format === 'txt') continue
-    const updated = await ensureCover(book)
-    if (updated.coverBlob) onCover(toSummary(updated))
+    if (book.format === 'txt') continue
+
+    if (!book.coverBlob) {
+      const updated = await ensureCover(book)
+      if (updated.coverBlob) onCover(toSummary(updated))
+      continue
+    }
+
+    if (!shouldTrimStored) continue
+
+    try {
+      const coverBlob = await refineCoverBlob(book.coverBlob)
+      await db.books.update(book.id, { coverBlob })
+      onCover(toSummary({ ...book, coverBlob }))
+    } catch {
+      // keep previous cover if trim fails
+    }
   }
+
+  if (shouldTrimStored) localStorage.setItem(COVER_TRIM_FLAG, '1')
 }
 
 export async function getBook(id: string): Promise<BookRecord | undefined> {
