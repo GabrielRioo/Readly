@@ -41,8 +41,6 @@ html[data-app-theme="kindle"] body {
 }
 
 html[data-app-theme="kindle"] .library-surface img,
-html[data-app-theme="kindle"] .reader-vocab-mark,
-html[data-app-theme="kindle"] .reader-bookmark-mark,
 html[data-app-theme="kindle"] .reader-lookup-mark {
   filter: grayscale(1) contrast(1.06);
 }
@@ -122,25 +120,31 @@ select {
 .reader-vocab-mark {
   display: inline;
   color: inherit;
-  border-radius: 0.15em;
-  padding: 0.05em 0;
   -webkit-box-decoration-break: clone;
   box-decoration-break: clone;
 }
 
 .reader-lookup-mark {
   background: var(--reader-selection);
+  border-radius: 0.15em;
+  padding: 0.05em 0;
 }
 
+/* Reading stop: ribbon on the left — easy to spot where to resume. */
 .reader-bookmark-mark {
-  background: color-mix(in srgb, var(--reader-bookmark, #1f4d3a) 28%, transparent);
-  box-shadow: inset 0 -2px 0 var(--reader-bookmark, #1f4d3a);
+  background: color-mix(in srgb, var(--reader-bookmark, #1f4d3a) 14%, transparent);
+  border-radius: 0 0.12em 0.12em 0;
+  padding: 0.08em 0.12em 0.08em 0.28em;
+  box-shadow: inset 0.22em 0 0 var(--reader-bookmark, #1f4d3a);
   scroll-margin-top: 24px;
 }
 
+/* Saved vocabulary: warm filled highlight. */
 .reader-vocab-mark {
-  background: color-mix(in srgb, var(--reader-vocab, #b45309) 32%, transparent);
-  box-shadow: inset 0 -2px 0 var(--reader-vocab, #b45309);
+  background: color-mix(in srgb, var(--reader-vocab, #b45309) 34%, transparent);
+  border-radius: 0.15em;
+  padding: 0.05em 0.08em;
+  box-shadow: inset 0 -0.12em 0 color-mix(in srgb, var(--reader-vocab, #b45309) 75%, transparent);
   cursor: pointer;
   scroll-margin-top: 24px;
 }

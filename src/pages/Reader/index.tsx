@@ -175,7 +175,7 @@ export function ReaderPage() {
     color: theme.text,
     '--reader-selection': theme.selection,
     '--reader-bookmark': theme.accent,
-    '--reader-vocab': theme.accent,
+    '--reader-vocab': theme.vocab,
   }
 
   if (reader.status === 'loading') {

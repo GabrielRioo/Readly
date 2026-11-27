@@ -9,6 +9,7 @@ export interface ReaderTheme {
   text: string
   muted: string
   accent: string
+  vocab: string
   sheet: string
   selection: string
 }
@@ -21,6 +22,7 @@ export const readerThemes: Record<ReaderThemeId, ReaderTheme> = {
     text: '#1a1f1c',
     muted: '#5c6560',
     accent: '#1f4d3a',
+    vocab: '#b45309',
     sheet: '#ffffff',
     selection: 'rgba(31, 77, 58, 0.22)',
   },
@@ -31,6 +33,7 @@ export const readerThemes: Record<ReaderThemeId, ReaderTheme> = {
     text: '#3e2f1c',
     muted: '#6d5644',
     accent: '#8a5a2b',
+    vocab: '#c2410c',
     sheet: '#fff6e8',
     selection: 'rgba(138, 90, 43, 0.28)',
   },
@@ -41,6 +44,7 @@ export const readerThemes: Record<ReaderThemeId, ReaderTheme> = {
     text: '#e7e2d6',
     muted: '#a39e93',
     accent: '#d7b07a',
+    vocab: '#f0b429',
     sheet: '#1c2128',
     selection: 'rgba(215, 176, 122, 0.35)',
   },
@@ -51,6 +55,7 @@ export const readerThemes: Record<ReaderThemeId, ReaderTheme> = {
     text: '#1a1a1a',
     muted: '#5a5a5a',
     accent: '#1a1a1a',
+    vocab: '#5c4a32',
     sheet: '#ebe8e0',
     selection: 'rgba(0, 0, 0, 0.16)',
   },
