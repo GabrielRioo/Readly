@@ -70,7 +70,9 @@ select {
 .reader-surface {
   transition: background-color 240ms ease, color 240ms ease;
   overscroll-behavior: none;
-  touch-action: pan-y;
+  /* Keep auto: pan-y steals vertical/diagonal selection drags on mobile and
+     drops the highlight at the right edge when extending to the next line. */
+  touch-action: auto;
 }
 
 .reader-page-start {
@@ -115,27 +117,29 @@ select {
   margin: 1.2em 0 0.45em;
 }
 
-.reader-lookup-mark {
-  background: var(--reader-selection);
+.reader-lookup-mark,
+.reader-bookmark-mark,
+.reader-vocab-mark {
+  display: inline;
   color: inherit;
   border-radius: 0.15em;
   padding: 0.05em 0;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+.reader-lookup-mark {
+  background: var(--reader-selection);
 }
 
 .reader-bookmark-mark {
   background: color-mix(in srgb, var(--reader-bookmark, #1f4d3a) 28%, transparent);
-  color: inherit;
-  border-radius: 0.15em;
-  padding: 0.05em 0;
   box-shadow: inset 0 -2px 0 var(--reader-bookmark, #1f4d3a);
   scroll-margin-top: 24px;
 }
 
 .reader-vocab-mark {
   background: color-mix(in srgb, var(--reader-vocab, #b45309) 32%, transparent);
-  color: inherit;
-  border-radius: 0.15em;
-  padding: 0.05em 0;
   box-shadow: inset 0 -2px 0 var(--reader-vocab, #b45309);
   cursor: pointer;
   scroll-margin-top: 24px;

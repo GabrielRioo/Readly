@@ -23,19 +23,15 @@ export function highlightSelectionIn(root: HTMLElement): boolean {
   const range = selection.getRangeAt(0)
   if (!root.contains(range.commonAncestorContainer)) return false
 
-  const mark = document.createElement('mark')
-  mark.className = 'reader-lookup-mark'
-  mark.setAttribute(LOOKUP_ATTR, '1')
-
-  try {
-    range.surroundContents(mark)
-  } catch {
-    mark.appendChild(range.extractContents())
-    range.insertNode(mark)
-  }
+  const marks = wrapRangeInPlace(range, () => {
+    const mark = document.createElement('mark')
+    mark.className = 'reader-lookup-mark'
+    mark.setAttribute(LOOKUP_ATTR, '1')
+    return mark
+  })
 
   selection.removeAllRanges()
-  return true
+  return marks.length > 0
 }
 
 export function clearLookupHighlight(root: HTMLElement | null): void {
@@ -54,25 +50,17 @@ export function clearVocabularyMarks(root: HTMLElement | null): void {
 }
 
 export function getLookupMarkLocation(root: HTMLElement): TextSpanLocation | null {
-  const mark = root.querySelector<HTMLElement>(`mark[${LOOKUP_ATTR}]`)
-  if (!mark) return null
-  return locationFromMark(root, mark)
+  const marks = [...root.querySelectorAll<HTMLElement>(`mark[${LOOKUP_ATTR}]`)]
+  if (marks.length === 0) return null
+  return locationFromMarks(root, marks)
 }
 
 export function promoteLookupToBookmark(root: HTMLElement): TextSpanLocation | null {
-  const mark = root.querySelector<HTMLElement>(`mark[${LOOKUP_ATTR}]`)
-  if (!mark) return null
-
-  const location = locationFromMark(root, mark)
+  const location = getLookupMarkLocation(root)
   if (!location) return null
 
-  clearBookmarkMark(root)
-
-  mark.removeAttribute(LOOKUP_ATTR)
-  mark.classList.remove('reader-lookup-mark')
-  mark.className = 'reader-bookmark-mark'
-  mark.setAttribute(BOOKMARK_ATTR, '1')
-
+  clearLookupHighlight(root)
+  if (!applyBookmarkByOffset(root, location.startOffset, location.length)) return null
   return location
 }
 
@@ -87,18 +75,14 @@ export function applyBookmarkByOffset(
   const range = rangeFromOffsets(root, startOffset, startOffset + length)
   if (!range) return false
 
-  const mark = document.createElement('mark')
-  mark.className = 'reader-bookmark-mark'
-  mark.setAttribute(BOOKMARK_ATTR, '1')
+  const marks = wrapRangeInPlace(range, () => {
+    const mark = document.createElement('mark')
+    mark.className = 'reader-bookmark-mark'
+    mark.setAttribute(BOOKMARK_ATTR, '1')
+    return mark
+  })
 
-  try {
-    range.surroundContents(mark)
-  } catch {
-    mark.appendChild(range.extractContents())
-    range.insertNode(mark)
-  }
-
-  return true
+  return marks.length > 0
 }
 
 export function applyVocabularyMarks(root: HTMLElement, marks: VocabularyMarkInput[]): void {
@@ -111,18 +95,14 @@ export function applyVocabularyMarks(root: HTMLElement, marks: VocabularyMarkInp
     const range = rangeFromOffsets(root, item.startOffset, item.startOffset + item.length)
     if (!range) continue
 
-    const mark = document.createElement('mark')
-    mark.className = 'reader-vocab-mark'
-    mark.setAttribute(VOCAB_ATTR, '1')
-    mark.setAttribute(VOCAB_ID_ATTR, item.id)
-    mark.title = 'Palavra salva no vocabulário'
-
-    try {
-      range.surroundContents(mark)
-    } catch {
-      mark.appendChild(range.extractContents())
-      range.insertNode(mark)
-    }
+    wrapRangeInPlace(range, () => {
+      const mark = document.createElement('mark')
+      mark.className = 'reader-vocab-mark'
+      mark.setAttribute(VOCAB_ATTR, '1')
+      mark.setAttribute(VOCAB_ID_ATTR, item.id)
+      mark.title = 'Palavra salva no vocabulário'
+      return mark
+    })
   }
 }
 
@@ -158,13 +138,28 @@ function scrollMarkIntoView(scroller: HTMLElement, mark: HTMLElement): void {
   scroller.scrollTop += markTop - scrollerTop - 24
 }
 
-function locationFromMark(root: HTMLElement, mark: HTMLElement): TextSpanLocation | null {
-  const quote = (mark.textContent ?? '').replace(/\s+/g, ' ').trim()
-  if (!quote) return null
-  const startOffset = textOffsetOf(root, mark)
+function locationFromMarks(root: HTMLElement, marks: HTMLElement[]): TextSpanLocation | null {
+  const first = marks[0]
+  if (!first) return null
+
+  const startOffset = textOffsetOf(root, first)
   if (startOffset < 0) return null
-  const length = mark.textContent?.length ?? 0
+
+  const last = marks[marks.length - 1]!
+  const lastStart = textOffsetOf(root, last)
+  if (lastStart < 0) return null
+
+  const endOffset = lastStart + (last.textContent?.length ?? 0)
+  const length = endOffset - startOffset
   if (length <= 0) return null
+
+  const quote = marks
+    .map((mark) => mark.textContent ?? '')
+    .join('')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (!quote) return null
+
   return { startOffset, length, quote }
 }
 
@@ -223,4 +218,80 @@ function rangeFromOffsets(root: HTMLElement, start: number, end: number): Range 
   range.setStart(startNode, startOffset)
   range.setEnd(endNode, endOffset)
   return range
+}
+
+/**
+ * Wrap each intersecting text node in place. Avoids surroundContents/extractContents,
+ * which can pull text out of a block when the selection starts at an element boundary
+ * (common on mobile at the start of a paragraph).
+ */
+function wrapRangeInPlace(range: Range, createMark: () => HTMLElement): HTMLElement[] {
+  if (range.collapsed) return []
+
+  const segments = textSegmentsInRange(range)
+  if (segments.length === 0) return []
+
+  const marks: HTMLElement[] = []
+
+  // Walk backwards so earlier splitText calls do not invalidate later node references.
+  for (let index = segments.length - 1; index >= 0; index -= 1) {
+    const segment = segments[index]!
+    let text = segment.node
+    let from = segment.start
+    let to = segment.end
+
+    if (from >= to) continue
+
+    if (to < text.length) text.splitText(to)
+    if (from > 0) {
+      text = text.splitText(from)
+    }
+
+    const parent = text.parentNode
+    if (!parent) continue
+
+    const mark = createMark()
+    parent.insertBefore(mark, text)
+    mark.appendChild(text)
+    marks.unshift(mark)
+  }
+
+  return marks
+}
+
+interface TextSegment {
+  node: Text
+  start: number
+  end: number
+}
+
+function textSegmentsInRange(range: Range): TextSegment[] {
+  const root = range.commonAncestorContainer
+  const walkerRoot = root.nodeType === Node.TEXT_NODE ? root.parentNode : root
+  if (!walkerRoot) return []
+
+  const segments: TextSegment[] = []
+  const walker = document.createTreeWalker(walkerRoot, NodeFilter.SHOW_TEXT)
+  let node: Node | null
+
+  while ((node = walker.nextNode())) {
+    const text = node as Text
+    if (!intersectsRange(text, range)) continue
+
+    const start = text === range.startContainer ? range.startOffset : 0
+    const end = text === range.endContainer ? range.endOffset : text.length
+    if (start >= end) continue
+    segments.push({ node: text, start, end })
+  }
+
+  return segments
+}
+
+function intersectsRange(node: Text, range: Range): boolean {
+  const nodeRange = document.createRange()
+  nodeRange.selectNodeContents(node)
+  return (
+    range.compareBoundaryPoints(Range.END_TO_START, nodeRange) < 0 &&
+    range.compareBoundaryPoints(Range.START_TO_END, nodeRange) > 0
+  )
 }
